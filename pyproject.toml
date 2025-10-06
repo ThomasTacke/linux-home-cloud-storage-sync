@@ -1,0 +1,23 @@
+[project]
+name = "linux-home-cloud-storage-sync"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Thomas Tacke",email = "kiwi@s3r3nity.org"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "typer (>=0.19.2,<0.20.0)",
+    "pydantic (>=2.11.9,<3.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "linux_home_cloud_storage_sync", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+linux-home-cloud-storage-sync = "linux_home_cloud_storage_sync.main:app"
