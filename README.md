@@ -16,6 +16,7 @@
 ## Table of Contents
 
 - [Features](#features)
+- [How it works](#how-it-works)
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [Usage](#usage)
@@ -37,6 +38,46 @@
 | Force recreation of existing links | ⚙️      |
 | Verbose output & colourised log    | ⚙️      |
 | Unit tests (WIP)                   | ⚙️      |
+
+---
+
+## How it works
+
+The tool **only creates symlinks** – it never moves or copies your data. For every entry
+in `symlinkMap` it looks at two paths:
+
+- **source** – `cloudStorageHomeDir/<entry>` (the copy living in your cloud storage)
+- **target** – `localHomeDir/<entry>` (the location in your `$HOME`)
+
+and then applies this rule:
+
+| Situation                            | Action                                             |
+| ------------------------------------ | -------------------------------------------------- |
+| source exists **and** target missing | create symlink `target → source`                   |
+| source does **not** exist            | do nothing (just print a notice)                   |
+| target already exists                | do nothing (just print a notice)                   |
+
+So the direction is **cloud → home**: the authoritative copy must already live inside
+`cloudStorageHomeDir`. The tool will **not** migrate an existing file for you, and it will
+**not** overwrite anything that is already present in your `$HOME`.
+
+### First‑time migration
+
+Because the tool leaves existing files untouched, adding a *new* entry to `symlinkMap`
+takes one manual step first – move the real file/folder into your cloud storage, keeping
+the same relative path:
+
+```fish
+# Example: back up ~/.claude/skills
+mkdir -p ~/Nextcloud/LinuxHome/.claude
+mv ~/.claude/skills ~/Nextcloud/LinuxHome/.claude/
+
+# then let the tool link it back into $HOME
+linux-home-cloud-storage-sync create-symlinks -n   # dry-run first
+linux-home-cloud-storage-sync create-symlinks
+```
+
+After that the file lives in the cloud and `~/.claude/skills` is a symlink pointing to it.
 
 ---
 
