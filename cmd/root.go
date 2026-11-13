@@ -31,12 +31,12 @@ func NewRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:           Name,
 		Short:         "Keep a cloud-storage home folder linked into your Linux home",
-		Long:          "Creates symlinks inside your $HOME that point to a folder in your cloud storage (Nextcloud, Dropbox, ...).\nIt never moves, copies or overwrites anything.",
+		Long:          "Creates symlinks inside your $HOME that point to a folder in your cloud storage (Nextcloud, Dropbox, ...).\nWithout --adopt or --force it never moves or renames anything, and it never deletes files or folders.",
 		Version:       Version(),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 	root.SetVersionTemplate(Name + " {{.Version}}\n")
-	root.AddCommand(newCreateSymlinksCmd(), newPrintTemplateConfigCmd(), newWriteDefaultConfigCmd())
+	root.AddCommand(newCreateSymlinksCmd(), newDeleteSymlinksCmd(), newPrintTemplateConfigCmd(), newWriteDefaultConfigCmd())
 	return root
 }

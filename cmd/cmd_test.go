@@ -139,3 +139,50 @@ func TestPrintTemplateConfigIsValidJSON(t *testing.T) {
 		t.Errorf("no symlinkMap:\n%s", out)
 	}
 }
+
+func TestAdoptForceAndDeleteEndToEnd(t *testing.T) {
+	root := t.TempDir()
+	cloud, home := filepath.Join(root, "cloud"), filepath.Join(root, "home")
+	// .gitconfig only local (adopt), Documents in both (force), Music a broken link (force)
+	os.MkdirAll(filepath.Join(cloud, "Documents"), 0o755)
+	os.MkdirAll(filepath.Join(cloud, "Music"), 0o755)
+	os.MkdirAll(filepath.Join(home, "Documents"), 0o755)
+	os.WriteFile(filepath.Join(home, ".gitconfig"), []byte("[user]"), 0o644)
+	os.Symlink(filepath.Join(root, "gone"), filepath.Join(home, "Music"))
+	config := writeConfig(t, cloud, home, ".gitconfig", "Documents", "Music")
+
+	out, err := run(t, "create-symlinks", "--adopt", "--force", "-n", config)
+	if err != nil || strings.Count(out, "Dry run:") != 3 {
+		t.Fatalf("dry run: err = %v\n%s", err, out)
+	}
+	if info, _ := os.Lstat(filepath.Join(home, ".gitconfig")); !info.Mode().IsRegular() {
+		t.Fatalf("dry run changed .gitconfig")
+	}
+
+	out, err = run(t, "create-symlinks", "--adopt", "--force", config)
+	if err != nil {
+		t.Fatalf("err = %v\n%s", err, out)
+	}
+	for _, item := range []string{".gitconfig", "Documents", "Music"} {
+		if dest, _ := os.Readlink(filepath.Join(home, item)); dest != filepath.Join(cloud, item) {
+			t.Errorf("%s points to %q\n%s", item, dest, out)
+		}
+	}
+	if backups, _ := filepath.Glob(filepath.Join(home, "Documents.backup-*")); len(backups) != 1 {
+		t.Errorf("backups = %v\n%s", backups, out)
+	}
+
+	out, err = run(t, "delete-symlinks", "--restore", config)
+	if err != nil {
+		t.Fatalf("err = %v\n%s", err, out)
+	}
+	if data, err := os.ReadFile(filepath.Join(home, ".gitconfig")); err != nil || string(data) != "[user]" {
+		t.Errorf(".gitconfig not restored: %q, %v\n%s", data, err, out)
+	}
+	if info, _ := os.Lstat(filepath.Join(home, "Music")); info == nil || !info.IsDir() {
+		t.Errorf("Music not restored as folder\n%s", out)
+	}
+	if _, err := os.Stat(filepath.Join(cloud, ".gitconfig")); err != nil {
+		t.Errorf("cloud copy gone after restore")
+	}
+}
