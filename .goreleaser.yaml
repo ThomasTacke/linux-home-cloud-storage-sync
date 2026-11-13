@@ -9,7 +9,7 @@ builds:
     goarch: [amd64, arm64]
     flags: [-trimpath]
     ldflags:
-      - -s -w -X github.com/ThomasTacke/linux-home-cloud-storage-sync/cmd.version={{ .Tag }}
+      - -s -w -X github.com/s3r3nity-labs/linux-home-cloud-storage-sync/cmd.version={{ .Tag }}
 
 archives:
   - formats: [tar.gz]
@@ -26,3 +26,25 @@ changelog:
 
 release:
   mode: keep-existing
+
+# Homebrew cask in s3r3nity-labs/homebrew-tap:
+#   brew install s3r3nity-labs/tap/linux-home-cloud-storage-sync
+# The token (fine-grained, Contents read/write on homebrew-tap only) is the repository
+# secret HOMEBREW_TAP_GITHUB_TOKEN, passed in by release.yml.
+homebrew_casks:
+  - name: linux-home-cloud-storage-sync
+    binaries: [linux-home-cloud-storage-sync]
+    homepage: https://github.com/s3r3nity-labs/linux-home-cloud-storage-sync
+    description: Keep a cloud-storage home folder linked into your Linux home
+    # Only Linux archives are built. Needs a current Homebrew (brew update); older ones
+    # reject this and the generated zap stanza
+    custom_block: |
+      depends_on :linux
+    commit_author:
+      name: s3r3nity-labs release
+      email: thomas@tacke.email
+    commit_msg_template: "linux-home-cloud-storage-sync {{ .Tag }}"
+    repository:
+      owner: s3r3nity-labs
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"

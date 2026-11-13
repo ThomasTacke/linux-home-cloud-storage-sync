@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ThomasTacke/linux-home-cloud-storage-sync/cmd"
+	"github.com/s3r3nity-labs/linux-home-cloud-storage-sync/cmd"
 )
 
 func main() {
