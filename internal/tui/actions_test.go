@@ -64,8 +64,8 @@ func TestSpaceSelectsAndMovesOn(t *testing.T) {
 	if !m.selected[".config/fish"] || !m.selected["Pictures"] || len(m.selected) != 2 {
 		t.Fatalf("selected = %v", m.selected)
 	}
-	if e, _ := m.current(); e.item != ".gitconfig" {
-		t.Errorf("cursor on %q", e.item)
+	if e, _ := m.current(); e.Item != ".gitconfig" {
+		t.Errorf("cursor on %q", e.Item)
 	}
 	if out := screen(m); strings.Count(out, "◆") != 2 {
 		t.Errorf("not two selection markers:\n%s", out)
@@ -104,8 +104,8 @@ func TestFixSelectedEntries(t *testing.T) {
 	if m.mode != modeConfirm {
 		t.Fatalf("mode %d, want confirm; status %q", m.mode, m.status)
 	}
-	if m.plan.count() != 4 {
-		t.Fatalf("plan does %d, want 4 (link, adopt, force backup, force link)", m.plan.count())
+	if m.plan.Count() != 4 {
+		t.Fatalf("plan does %d, want 4 (link, adopt, force backup, force link)", m.plan.Count())
 	}
 	out := screen(m)
 	for _, want := range []string{"Fix 4 entries?", "2 have nothing to do and are skipped",
@@ -235,7 +235,7 @@ func TestNewEntryThroughThePicker(t *testing.T) {
 	if got := savedItems(t, path); !slices.Equal(got, []string{"notes.txt"}) {
 		t.Fatalf("saved %v; status %q", got, m.status)
 	}
-	if m.mode != modeConfirm || m.plan.action != actFix {
+	if m.mode != modeConfirm || m.plan.Action != actFix {
 		t.Fatalf("no fix dialog, mode %d, status %q", m.mode, m.status)
 	}
 	m = run(t, m, char('y'))
@@ -255,33 +255,6 @@ func TestPickerEscCancels(t *testing.T) {
 	}
 	if got := savedItems(t, path); len(got) != 6 {
 		t.Errorf("config changed: %v", got)
-	}
-}
-
-func TestNewItemChecks(t *testing.T) {
-	home, cloud := "/home/kiwi", "/home/kiwi/Nextcloud/LinuxHome"
-	existing := []string{".config/fish", "Documents"}
-	tests := []struct {
-		path, want, err string
-	}{
-		{"/home/kiwi/.gitconfig", ".gitconfig", ""},
-		{"/home/kiwi/.config/nvim", ".config/nvim", ""},
-		{"/home/kiwi", "", "not inside"},
-		{"/etc/hosts", "", "not inside"},
-		{"/home/kiwi/Nextcloud", "", "cloud folder"},
-		{"/home/kiwi/Nextcloud/LinuxHome/x", "", "cloud folder"},
-		{"/home/kiwi/Documents", "", "already an entry"},
-		{"/home/kiwi/Documents/cv.pdf", "", "inside the entry Documents"},
-		{"/home/kiwi/.config", "", "contains the entry .config/fish"},
-	}
-	for _, tt := range tests {
-		got, err := newItem(tt.path, home, cloud, existing)
-		if tt.err == "" && (err != nil || got != tt.want) {
-			t.Errorf("%s: got %q, %v; want %q", tt.path, got, err, tt.want)
-		}
-		if tt.err != "" && (err == nil || !strings.Contains(err.Error(), tt.err)) {
-			t.Errorf("%s: err %v, want %q", tt.path, err, tt.err)
-		}
 	}
 }
 

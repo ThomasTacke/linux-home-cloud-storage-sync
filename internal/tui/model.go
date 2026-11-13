@@ -24,6 +24,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/s3r3nity-labs/linux-home-cloud-storage-sync/internal/app"
 	"github.com/s3r3nity-labs/linux-home-cloud-storage-sync/internal/config"
 	"github.com/s3r3nity-labs/linux-home-cloud-storage-sync/internal/linker"
 )
@@ -97,9 +98,9 @@ func (m Model) Init() tea.Cmd {
 func (m *Model) refresh() {
 	current := ""
 	if e, ok := m.current(); ok {
-		current = e.item
+		current = e.Item
 	}
-	m.entries = inspect(m.cfg)
+	m.entries = app.Inspect(m.cfg)
 	for item := range m.selected {
 		if !slices.Contains(m.cfg.SymlinkMap, item) {
 			delete(m.selected, item)
@@ -112,7 +113,7 @@ func (m *Model) refresh() {
 // moveTo puts the cursor on item, if it's visible.
 func (m *Model) moveTo(item string) {
 	for i, idx := range m.visible {
-		if m.entries[idx].item == item {
+		if m.entries[idx].Item == item {
 			m.cursor = i
 		}
 	}
@@ -124,7 +125,7 @@ func (m *Model) applyFilter() {
 	query := strings.ToLower(strings.TrimSpace(m.filter.Value()))
 	m.visible = m.visible[:0]
 	for i, e := range m.entries {
-		if query == "" || strings.Contains(strings.ToLower(e.item), query) {
+		if query == "" || strings.Contains(strings.ToLower(e.Item), query) {
 			m.visible = append(m.visible, i)
 		}
 	}
@@ -144,7 +145,7 @@ func (m Model) current() (entry, bool) {
 func (m Model) targets() []entry {
 	var out []entry
 	for _, e := range m.entries {
-		if m.selected[e.item] {
+		if m.selected[e.Item] {
 			out = append(out, e)
 		}
 	}
@@ -231,16 +232,16 @@ func (m Model) updateList(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.cursor = len(m.visible) - 1
 	case key.Matches(msg, m.keys.Select):
 		if e, ok := m.current(); ok {
-			if m.selected[e.item] {
-				delete(m.selected, e.item)
+			if m.selected[e.Item] {
+				delete(m.selected, e.Item)
 			} else {
-				m.selected[e.item] = true
+				m.selected[e.Item] = true
 			}
 			m.cursor++ // like a file manager: mark and move on
 		}
 	case key.Matches(msg, m.keys.All):
 		for _, idx := range m.visible {
-			m.selected[m.entries[idx].item] = true
+			m.selected[m.entries[idx].Item] = true
 		}
 	case key.Matches(msg, m.keys.Clear):
 		if len(m.selected) > 0 {
@@ -286,9 +287,9 @@ func (m Model) confirm(a action) Model {
 	if len(targets) == 0 {
 		return m
 	}
-	p := preview(a, targets)
-	if p.count() == 0 {
-		m.status = fmt.Sprintf("%s: nothing to do for %s.", a.title(), describeTargets(targets))
+	p := app.Preview(a, targets)
+	if p.Count() == 0 {
+		m.status = fmt.Sprintf("%s: nothing to do for %s.", actionTitle(a), describeTargets(targets))
 		return m
 	}
 	m.plan = p
@@ -298,7 +299,7 @@ func (m Model) confirm(a action) Model {
 
 func describeTargets(targets []entry) string {
 	if len(targets) == 1 {
-		return targets[0].item
+		return targets[0].Item
 	}
 	return fmt.Sprintf("the %d selected entries", len(targets))
 }
@@ -307,11 +308,7 @@ func (m Model) updateConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Yes):
 		m.mode = modeBusy
-		byItem := map[string]entry{}
-		for _, e := range m.entries {
-			byItem[e.item] = e
-		}
-		return m, execute(m.plan, byItem, m.cfg, m.configPath)
+		return m, execute(m.plan, m.entries, m.cfg, m.configPath)
 	case key.Matches(msg, m.keys.No):
 		m.mode = modeList
 	}
@@ -322,26 +319,15 @@ func (m Model) updateConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 func (m Model) finished(done doneMsg) Model {
 	m.done = done
 	m.mode = modeResult
-	if done.action == actRemove && done.err == nil {
-		removed := map[string]bool{}
-		for _, s := range done.steps {
-			removed[s.item] = true
-		}
-		m.cfg.SymlinkMap = slices.DeleteFunc(slices.Clone(m.cfg.SymlinkMap), func(item string) bool { return removed[item] })
-	}
-	failed := 0
-	for _, s := range done.steps {
-		if !s.does {
-			failed++
-		}
-	}
+	m.cfg = done.Config // ActRemove changed symlinkMap
+	failed := app.Result(done).Failed()
 	switch {
-	case done.err != nil:
-		m.status = "Saving the config failed: " + done.err.Error()
+	case done.Err != nil:
+		m.status = "Saving the config failed: " + done.Err.Error()
 	case failed > 0:
-		m.status = fmt.Sprintf("%s: %d of %d failed.", done.action.title(), failed, len(done.steps))
+		m.status = fmt.Sprintf("%s: %d of %d failed.", actionTitle(done.Action), failed, len(done.Steps))
 	default:
-		m.status = fmt.Sprintf("%s: %d done.", done.action.title(), len(done.steps))
+		m.status = fmt.Sprintf("%s: %d done.", actionTitle(done.Action), len(done.Steps))
 		clear(m.selected)
 	}
 	m.refresh()
@@ -365,17 +351,12 @@ func (m Model) updatePicker(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 // away: adopt for something only in $HOME, link when the cloud already has it.
 func (m Model) add(path string) Model {
 	m.mode = modeList
-	item, err := newItem(path, m.cfg.LocalHomeDir, m.cfg.CloudStorageHomeDir, m.cfg.SymlinkMap)
+	cfg, item, err := app.AddItem(m.cfg, m.configPath, path)
 	if err != nil {
 		m.status = "Not added: " + err.Error()
 		return m
 	}
-	items := append(slices.Clone(m.cfg.SymlinkMap), item)
-	if err := config.SaveSymlinkMap(m.configPath, m.cfg, items); err != nil {
-		m.status = "Saving the config failed: " + err.Error()
-		return m
-	}
-	m.cfg.SymlinkMap = items
+	m.cfg = cfg
 	m.note = "" // a config exists now
 	m.filter.Reset()
 	clear(m.selected)
@@ -383,7 +364,7 @@ func (m Model) add(path string) Model {
 	m.moveTo(item)
 	m.status = fmt.Sprintf("Added %s to %s.", item, short(m.configPath))
 
-	if e, ok := m.current(); ok && (e.kind == kindLocalOnly || e.kind == kindNotLinked) {
+	if e, ok := m.current(); ok && (e.Kind == kindLocalOnly || e.Kind == kindNotLinked) {
 		status := m.status
 		m = m.confirm(actFix)
 		if m.mode != modeConfirm {
@@ -425,8 +406,8 @@ func (m Model) View() tea.View {
 // stateOf is a helper for tests and the view: the linker state of an item right now.
 func (m Model) stateOf(item string) linker.State {
 	for _, e := range m.entries {
-		if e.item == item {
-			return e.status.State
+		if e.Item == item {
+			return e.Status.State
 		}
 	}
 	return -1
