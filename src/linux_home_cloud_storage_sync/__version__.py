@@ -23,8 +23,12 @@ Example:
 # __version__: str = "0.1.0"
 from importlib.metadata import PackageNotFoundError, version
 
+DISTRIBUTION_NAME = "linux-home-cloud-storage-sync"
+
 try:
-    __version__ = version(__name__)  # will read the version from the installed metadata
+    # The distribution's name, not __name__: that's this module
+    # ("linux_home_cloud_storage_sync.__version__"), which has no metadata.
+    __version__ = version(DISTRIBUTION_NAME)
 except PackageNotFoundError:  # pragma: no cover
     # Package is not installed (e.g. running from a source checkout)
     __version__ = "0.0.0+dev"

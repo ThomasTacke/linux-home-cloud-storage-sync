@@ -21,3 +21,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 linux-home-cloud-storage-sync = "linux_home_cloud_storage_sync.main:app"
+[dependency-groups]
+dev = [
+    "pytest (>=9.2.0,<10.0.0)"
+]
