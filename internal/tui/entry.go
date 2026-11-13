@@ -156,32 +156,31 @@ func (e entry) hint() string {
 }
 
 // details explains the selected entry in a few lines: what's there, what the fix would
-// do and, as long as the TUI can't act yet, the command that does it.
+// do, and the key that does it (always the last line, it's never cut).
 func (e entry) details() []string {
-	const cmd = "linux-home-cloud-storage-sync create-symlinks"
 	switch e.kind {
 	case kindLinked:
 		return []string{
 			fmt.Sprintf("%s is a symlink to %s.", short(e.target), short(e.source)),
-			"Nothing to do.",
+			"Key: d deletes the link, D replaces it with a copy.",
 		}
 	case kindNotLinked:
 		return []string{
 			fmt.Sprintf("The cloud has %s, but %s doesn't exist yet.", short(e.source), short(e.target)),
 			"link: create the symlink.",
-			"Run: " + cmd,
+			"Key: enter (or l) to link.",
 		}
 	case kindLocalOnly:
 		return []string{
 			fmt.Sprintf("%s is a real %s, the cloud has none yet.", short(e.target), e.what),
 			fmt.Sprintf("adopt: move it to %s and link it back.", short(e.source)),
-			"Run: " + cmd + " --adopt",
+			"Key: enter (or a) to adopt.",
 		}
 	case kindBothExist:
 		return []string{
 			fmt.Sprintf("%s is a real %s, and the cloud has %s too.", short(e.target), e.what, short(e.source)),
 			fmt.Sprintf("force: rename the local one to %s and link the cloud copy.", filepath.Base(e.fix.Backup)),
-			"Run: " + cmd + " --force",
+			"Key: enter (or f) to force.",
 		}
 	case kindBadLink:
 		what := "a symlink to"
@@ -191,7 +190,7 @@ func (e entry) details() []string {
 		return []string{
 			fmt.Sprintf("%s is %s %s.", short(e.target), what, short(e.status.PointsTo)),
 			fmt.Sprintf("force: replace it with a link to %s (%s itself stays).", short(e.source), short(e.status.PointsTo)),
-			"Run: " + cmd + " --force",
+			"Key: enter (or f) to force.",
 		}
 	case kindNotInCloud:
 		return []string{

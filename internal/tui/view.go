@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -46,34 +47,168 @@ func (k kind) style() lipgloss.Style {
 }
 
 // listHeight is how many entry rows fit: the screen minus header, both boxes, the filter
-// line and the help bar.
+// line, the status line and the help bar.
 func (m Model) listHeight() int {
 	used := 1 + 2 + (detailLines + 2) + lipgloss.Height(m.helpView())
 	if m.showFilterLine() {
+		used++
+	}
+	if m.status != "" {
 		used++
 	}
 	return max(m.height-used, 1)
 }
 
 func (m Model) showFilterLine() bool {
-	return m.filtering || m.filter.Value() != ""
+	return m.mode == modeFilter || m.filter.Value() != ""
 }
 
+// helpView is the help bar for whatever has the keys right now.
 func (m Model) helpView() string {
-	if m.filtering {
+	switch m.mode {
+	case modeFilter:
 		return m.help.View(filterKeys{m.keys})
+	case modeConfirm:
+		return m.help.View(confirmKeys{m.keys})
+	case modeResult:
+		return m.help.View(staticKeys{key.NewBinding(key.WithKeys("any"), key.WithHelp("any key", "close"))})
+	case modeBusy:
+		return faintStyle.Render("working…")
+	case modePicker:
+		return m.help.View(staticKeys{
+			m.picker.KeyMap.Up, m.picker.KeyMap.Down, m.picker.KeyMap.Open, m.picker.KeyMap.Back,
+			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "add")),
+			key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "cancel")),
+		})
 	}
 	return m.help.View(m.keys)
 }
 
-// render assembles the screen top to bottom.
+// render assembles the screen top to bottom, with a dialog on top if one is open.
 func (m Model) render() string {
 	parts := []string{m.header(), m.list(), m.details()}
 	if m.showFilterLine() {
 		parts = append(parts, m.filter.View())
 	}
+	if m.status != "" {
+		parts = append(parts, hintStyle.Render(truncate(m.status, m.width)))
+	}
 	parts = append(parts, m.helpView())
-	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+	screen := lipgloss.JoinVertical(lipgloss.Left, parts...)
+
+	var dialog string
+	switch m.mode {
+	case modeConfirm, modeBusy:
+		dialog = m.confirmDialog()
+	case modeResult:
+		dialog = m.resultDialog()
+	case modePicker:
+		dialog = m.pickerDialog()
+	default:
+		return screen
+	}
+	// Layers: the screen at the bottom, the dialog centered above it (Z 1)
+	x := max((m.width-lipgloss.Width(dialog))/2, 0)
+	y := max((m.height-lipgloss.Height(dialog))/2, 0)
+	return lipgloss.NewCompositor(
+		lipgloss.NewLayer(screen),
+		lipgloss.NewLayer(dialog).X(x).Y(y).Z(1),
+	).Render()
+}
+
+// dialogWidth fits dialogs into small terminals and keeps them readable in large ones.
+func (m Model) dialogWidth() int {
+	return min(m.width-4, 84)
+}
+
+// dialogBox frames a dialog: title, wrapped text, then the step lines, cut to fit.
+func (m Model) dialogBox(title, text string, lines []string) string {
+	inner := m.dialogWidth() - 4
+	room := max(m.height-8, 3) // keep the help bar visible
+	body := []string{titleStyle.Render(title)}
+	if text != "" {
+		body = append(body, "", lipgloss.NewStyle().Width(inner).Render(text))
+	}
+	if len(lines) > 0 {
+		body = append(body, "")
+	}
+	free := room - lipgloss.Height(strings.Join(body, "\n"))
+	if len(lines) > free {
+		more := len(lines) - (free - 1)
+		lines = append(lines[:max(free-1, 0)], faintStyle.Render(fmt.Sprintf("… and %d more", more)))
+	}
+	for _, l := range lines {
+		body = append(body, truncate(l, inner))
+	}
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(magenta).
+		Padding(0, 1).
+		Width(m.dialogWidth()).
+		Render(strings.Join(body, "\n"))
+}
+
+// stepLines: one line per entry, item column aligned.
+func stepLines(a action, steps []step, done bool) []string {
+	width := 0
+	for _, s := range steps {
+		width = max(width, lipgloss.Width(s.item))
+	}
+	var lines []string
+	for _, s := range steps {
+		icon, style := "→", hintStyle
+		switch {
+		case done && s.does:
+			icon, style = "✓", lipgloss.NewStyle().Foreground(green)
+		case done:
+			icon, style = "✗", lipgloss.NewStyle().Foreground(red)
+		case !s.does:
+			icon, style = "·", faintStyle
+		}
+		pad := strings.Repeat(" ", width-lipgloss.Width(s.item)+2)
+		lines = append(lines, style.Render(icon)+" "+s.item+pad+style.Render(describe(a, s)))
+	}
+	return lines
+}
+
+func (m Model) confirmDialog() string {
+	p := m.plan
+	n := p.count()
+	title := fmt.Sprintf("%s %d %s?", p.action.title(), n, plural(n, "entry", "entries"))
+	if m.mode == modeBusy {
+		title = p.action.title() + " …"
+	}
+	text := p.action.explain()
+	if skipped := len(p.steps) - n; skipped > 0 {
+		text += fmt.Sprintf(" %d %s nothing to do and %s skipped.", skipped, plural(skipped, "has", "have"), plural(skipped, "is", "are"))
+	}
+	return m.dialogBox(title, text, stepLines(p.action, p.steps, false))
+}
+
+func (m Model) resultDialog() string {
+	d := m.done
+	if d.err != nil {
+		return m.dialogBox(d.action.title()+" failed", d.err.Error(), nil)
+	}
+	return m.dialogBox(d.action.title()+": done", "", stepLines(d.action, d.steps, true))
+}
+
+func (m Model) pickerDialog() string {
+	text := "Choose a file or folder in " + short(m.cfg.LocalHomeDir) + ". → opens a folder, enter adds the highlighted one."
+	return m.dialogBox("New entry  "+faintStyle.Render(short(m.picker.CurrentDirectory)), text,
+		strings.Split(strings.TrimRight(m.picker.View(), "\n"), "\n"))
+}
+
+// pickerHeight is how many files the picker lists inside its dialog.
+func (m Model) pickerHeight() int {
+	return max(m.height-16, 3)
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
 }
 
 // header: name and cloud folder on the left, a count per status on the right. The counts
@@ -138,6 +273,11 @@ func (m Model) list() string {
 				marker = cursorStyle.Render("▸ ")
 				item = lipgloss.NewStyle().Bold(true).Render(item)
 			}
+			if m.selected[e.item] {
+				marker += cursorStyle.Render("◆ ")
+			} else {
+				marker += "  "
+			}
 			line := marker + e.kind.style().Render(e.icon()) + "  " + item +
 				strings.Repeat(" ", itemWidth-lipgloss.Width(truncate(e.item, itemWidth))+2) +
 				e.kind.style().Render(e.label())
@@ -158,11 +298,11 @@ func (m Model) list() string {
 func (m Model) details() string {
 	inner := m.width - 4
 	var lines []string
-	if e, ok := m.selected(); ok {
+	if e, ok := m.current(); ok {
 		var blocks [][]string
 		for _, d := range e.details() {
 			style := lipgloss.NewStyle()
-			if strings.HasPrefix(d, "Run: ") {
+			if strings.HasPrefix(d, "Key: ") {
 				style = faintStyle
 			}
 			blocks = append(blocks, strings.Split(style.Width(inner).Render(d), "\n"))

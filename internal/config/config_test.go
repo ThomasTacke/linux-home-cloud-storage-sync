@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -92,5 +93,58 @@ func TestWriteNeverOverwrites(t *testing.T) {
 	}
 	if data, _ := os.ReadFile(path); string(data) != "mine" {
 		t.Errorf("file was overwritten: %q", data)
+	}
+}
+
+func TestSaveSymlinkMapKeepsTheRestAndTheLink(t *testing.T) {
+	dir := t.TempDir()
+	real := filepath.Join(dir, "cloud", "config.json")
+	link := filepath.Join(dir, "home", ".config", "config.json")
+	os.MkdirAll(filepath.Dir(real), 0o755)
+	os.MkdirAll(filepath.Dir(link), 0o755)
+	original := `{"cloudStorageHomeDir": "~/Nextcloud/LinuxHome", "localHomeDir": "~", "symlinkMap": ["Documents"], "comment": "mine"}`
+	os.WriteFile(real, []byte(original), 0o600)
+	os.Symlink(real, link)
+
+	cfg, err := Load(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SaveSymlinkMap(link, cfg, []string{"Documents", ".gitconfig"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if dest, err := os.Readlink(link); err != nil || dest != real {
+		t.Fatalf("the link was replaced: %q, %v", dest, err)
+	}
+	var raw map[string]any
+	data, _ := os.ReadFile(real)
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("not JSON: %v\n%s", err, data)
+	}
+	if raw["cloudStorageHomeDir"] != "~/Nextcloud/LinuxHome" || raw["localHomeDir"] != "~" || raw["comment"] != "mine" {
+		t.Errorf("other keys changed:\n%s", data)
+	}
+	if got := raw["symlinkMap"]; !reflect.DeepEqual(got, []any{"Documents", ".gitconfig"}) {
+		t.Errorf("symlinkMap = %v", got)
+	}
+	if info, _ := os.Stat(real); info.Mode().Perm() != 0o600 {
+		t.Errorf("permissions changed to %v", info.Mode().Perm())
+	}
+	if leftovers, _ := filepath.Glob(filepath.Join(dir, "cloud", ".config.json.*")); len(leftovers) != 0 {
+		t.Errorf("temporary files left: %v", leftovers)
+	}
+}
+
+func TestSaveSymlinkMapCreatesMissingFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sub", "config.json")
+	cfg := Config{CloudStorageHomeDir: "/c", LocalHomeDir: "/h"}
+
+	if err := SaveSymlinkMap(path, cfg, []string{"Music"}); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := Load(path)
+	if err != nil || !reflect.DeepEqual(loaded.SymlinkMap, []string{"Music"}) {
+		t.Fatalf("loaded %+v, %v", loaded, err)
 	}
 }
