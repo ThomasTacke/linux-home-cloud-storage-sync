@@ -31,6 +31,7 @@
 | `--adopt`: move a local file/folder into the cloud        | ✅      |
 | `--force`: replace links, set local copies aside          | ✅      |
 | `delete-symlinks` (optionally `--restore` a copy)         | ✅      |
+| `tui`: interactive status view (read-only for now)        | ✅      |
 | `~` in config paths                                       | ✅      |
 | Shell completion (fish, bash, zsh)                        | ✅      |
 | Unit tests                                                | ✅      |
@@ -114,7 +115,7 @@ curl -sL https://github.com/s3r3nity-labs/linux-home-cloud-storage-sync/releases
 
 `checksums.txt` in each release has the SHA-256 of every archive.
 
-With Go 1.25 or newer:
+With Go 1.26.7 or newer (the TUI libraries need it):
 
 ```fish
 go install github.com/s3r3nity-labs/linux-home-cloud-storage-sync@latest
@@ -182,6 +183,7 @@ Available Commands:
   delete-symlinks       Removes the symlinks into CloudStorage/LinuxHome again
   help                  Help about any command
   print-template-config Prints the template configuration
+  tui                   Shows the status of every entry interactively (read-only)
   write-default-config  Writes the template configuration
 
 Flags:
@@ -202,6 +204,30 @@ The target "/home/kiwi/Music" is a broken symlink to "/home/kiwi/Old/Music", not
 The source "/home/kiwi/Nextcloud/LinuxHome/Templates" does not exist.
 ```
 
+`tui [config]` shows the same as a full-screen view: every entry with an icon and its
+status, what `--adopt`/`--force` would do about it, and details for the selected entry
+including the command that fixes it. Keys: `↑`/`↓` (or `k`/`j`), `/` to filter, `r` to
+check again, `?` for all keys, `q` to quit. It only looks, it changes nothing (yet).
+
+```
+linux-home-cloud-storage-sync  ~/Nextcloud/LinuxHome                    ✓ 1  ○ 1  ● 2  ✗ 1  · 1
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ▸ ✓  .config/fish  linked                                                                        │
+│   ○  Pictures      not linked yet        → link                                                  │
+│   ●  .gitconfig    only in $HOME         → adopt                                                 │
+│   ●  Documents     local folder + cloud  → force (backup)                                        │
+│   ✗  Music         broken link           → force                                                 │
+│   ·  Templates     not in cloud yet                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ .gitconfig  only in $HOME                                                                        │
+│ ~/.gitconfig is a real file, the cloud has none yet.                                             │
+│ adopt: move it to ~/Nextcloud/LinuxHome/.gitconfig and link it back.                             │
+│ Run: linux-home-cloud-storage-sync create-symlinks --adopt                                       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+↑/k up • ↓/j down • / filter • r refresh • ? more keys • q quit
+```
+
 Both exit with 1 on an invalid config (listing every problem) or when an entry failed
 (e.g. permission denied); the other entries are still done.
 
@@ -219,6 +245,8 @@ go run . create-symlinks -n
 - `cmd/` – the Cobra commands and their output
 - `internal/config/` – reading, validating and writing the JSON config
 - `internal/linker/` – deciding what to do for one entry and creating the link
+- `internal/tui/` – the `tui` view ([Bubble Tea](https://github.com/charmbracelet/bubbletea) v2:
+  `model.go` state and keys, `view.go` drawing, `entry.go` status per entry)
 
 ---
 
