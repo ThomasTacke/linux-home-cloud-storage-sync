@@ -1,0 +1,28 @@
+# Release builds, run by .github/workflows/release.yml.
+# Local test without publishing: goreleaser release --snapshot --clean
+version: 2
+
+builds:
+  - env:
+      - CGO_ENABLED=0 # static binary, runs on any Linux
+    goos: [linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X github.com/ThomasTacke/linux-home-cloud-storage-sync/cmd.version={{ .Tag }}
+
+archives:
+  - formats: [tar.gz]
+    # No version in the name, so .../releases/latest/download/<name> always works
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    files: [README.md, LICENSE]
+
+checksum:
+  name_template: checksums.txt
+
+# The release notes come from the web UI ("Generate release notes")
+changelog:
+  disable: true
+
+release:
+  mode: keep-existing

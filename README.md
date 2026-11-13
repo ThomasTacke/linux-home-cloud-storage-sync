@@ -16,6 +16,7 @@
 - [Quick start](#quick-start)
 - [Usage](#usage)
 - [Development](#development)
+- [Releases](#releases)
 - [TODOs \& Roadmap](#todos--roadmap)
 
 ---
@@ -97,6 +98,15 @@ The cloud copy is never touched, the other machines still use it.
 ---
 
 ## Installation
+
+From a release, no Go needed (`amd64`; for ARM replace it with `arm64`):
+
+```fish
+curl -sL https://github.com/ThomasTacke/linux-home-cloud-storage-sync/releases/latest/download/linux-home-cloud-storage-sync_linux_amd64.tar.gz \
+  | tar -xz -C ~/.local/bin linux-home-cloud-storage-sync
+```
+
+`checksums.txt` in each release has the SHA-256 of every archive.
 
 With Go 1.25 or newer:
 
@@ -206,7 +216,22 @@ go run . create-symlinks -n
 
 ---
 
+## Releases
+
+GitHub Actions runs the tests on every push and pull request (`.github/workflows/ci.yml`).
+To release:
+
+1. *Releases → Draft a new release*, new tag (e.g. `v0.3.0`) on `main`, *Generate release
+   notes*, *Publish release*.
+2. `.github/workflows/release.yml` runs the tests and GoReleaser (`.goreleaser.yaml`):
+   static binaries for `linux/amd64` and `linux/arm64`, as `.tar.gz` with README and
+   LICENSE, plus `checksums.txt`, attached to the release. The text from step 1 stays.
+
+Local test build, nothing published: `goreleaser release --snapshot --clean` (output in
+`dist/`).
+
+---
+
 ## TODOs & Roadmap
 
-- GitHub Actions: tests on every push, release binaries for tags (GoReleaser).
 - `CONTRIBUTING.md`.
