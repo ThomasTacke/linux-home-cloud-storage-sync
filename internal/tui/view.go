@@ -32,7 +32,7 @@ var (
 // when the selection changes.
 const detailLines = 5
 
-func (k kind) style() lipgloss.Style {
+func kindStyle(k kind) lipgloss.Style {
 	s := lipgloss.NewStyle()
 	switch k {
 	case kindLinked:
@@ -152,45 +152,45 @@ func (m Model) dialogBox(title, text string, lines []string) string {
 func stepLines(a action, steps []step, done bool) []string {
 	width := 0
 	for _, s := range steps {
-		width = max(width, lipgloss.Width(s.item))
+		width = max(width, lipgloss.Width(s.Item))
 	}
 	var lines []string
 	for _, s := range steps {
 		icon, style := "→", hintStyle
 		switch {
-		case done && s.does:
+		case done && s.Does:
 			icon, style = "✓", lipgloss.NewStyle().Foreground(green)
 		case done:
 			icon, style = "✗", lipgloss.NewStyle().Foreground(red)
-		case !s.does:
+		case !s.Does:
 			icon, style = "·", faintStyle
 		}
-		pad := strings.Repeat(" ", width-lipgloss.Width(s.item)+2)
-		lines = append(lines, style.Render(icon)+" "+s.item+pad+style.Render(describe(a, s)))
+		pad := strings.Repeat(" ", width-lipgloss.Width(s.Item)+2)
+		lines = append(lines, style.Render(icon)+" "+s.Item+pad+style.Render(describe(a, s)))
 	}
 	return lines
 }
 
 func (m Model) confirmDialog() string {
 	p := m.plan
-	n := p.count()
-	title := fmt.Sprintf("%s %d %s?", p.action.title(), n, plural(n, "entry", "entries"))
+	n := p.Count()
+	title := fmt.Sprintf("%s %d %s?", actionTitle(p.Action), n, plural(n, "entry", "entries"))
 	if m.mode == modeBusy {
-		title = p.action.title() + " …"
+		title = actionTitle(p.Action) + " …"
 	}
-	text := p.action.explain()
-	if skipped := len(p.steps) - n; skipped > 0 {
+	text := actionExplain(p.Action)
+	if skipped := len(p.Steps) - n; skipped > 0 {
 		text += fmt.Sprintf(" %d %s nothing to do and %s skipped.", skipped, plural(skipped, "has", "have"), plural(skipped, "is", "are"))
 	}
-	return m.dialogBox(title, text, stepLines(p.action, p.steps, false))
+	return m.dialogBox(title, text, stepLines(p.Action, p.Steps, false))
 }
 
 func (m Model) resultDialog() string {
 	d := m.done
-	if d.err != nil {
-		return m.dialogBox(d.action.title()+" failed", d.err.Error(), nil)
+	if d.Err != nil {
+		return m.dialogBox(actionTitle(d.Action)+" failed", d.Err.Error(), nil)
 	}
-	return m.dialogBox(d.action.title()+": done", "", stepLines(d.action, d.steps, true))
+	return m.dialogBox(actionTitle(d.Action)+": done", "", stepLines(d.Action, d.Steps, true))
 }
 
 func (m Model) pickerDialog() string {
@@ -217,13 +217,13 @@ func (m Model) header() string {
 	// One count per icon: "only in $HOME" and "local + cloud" are both ●
 	counts := map[string]int{}
 	for _, e := range m.entries {
-		counts[e.icon()]++
+		counts[icon(e)]++
 	}
 	var summary []string
 	for _, k := range []kind{kindLinked, kindNotLinked, kindLocalOnly, kindBadLink, kindNotInCloud, kindOther} {
-		icon := (entry{kind: k}).icon()
+		icon := icon(entry{Kind: k})
 		if counts[icon] > 0 {
-			summary = append(summary, k.style().Render(fmt.Sprintf("%s %d", icon, counts[icon])))
+			summary = append(summary, kindStyle(k).Render(fmt.Sprintf("%s %d", icon, counts[icon])))
 		}
 	}
 	right := strings.Join(summary, "  ")
@@ -260,29 +260,29 @@ func (m Model) list() string {
 	default:
 		itemWidth, labelWidth := 0, 0
 		for _, idx := range m.visible {
-			itemWidth = max(itemWidth, lipgloss.Width(m.entries[idx].item))
-			labelWidth = max(labelWidth, lipgloss.Width(m.entries[idx].label()))
+			itemWidth = max(itemWidth, lipgloss.Width(m.entries[idx].Item))
+			labelWidth = max(labelWidth, lipgloss.Width(label(m.entries[idx])))
 		}
 		itemWidth = min(itemWidth, inner/2)
 
 		for i := m.offset; i < len(m.visible) && i < m.offset+rows; i++ {
 			e := m.entries[m.visible[i]]
 			marker := "  "
-			item := truncate(e.item, itemWidth)
+			item := truncate(e.Item, itemWidth)
 			if i == m.cursor {
 				marker = cursorStyle.Render("▸ ")
 				item = lipgloss.NewStyle().Bold(true).Render(item)
 			}
-			if m.selected[e.item] {
+			if m.selected[e.Item] {
 				marker += cursorStyle.Render("◆ ")
 			} else {
 				marker += "  "
 			}
-			line := marker + e.kind.style().Render(e.icon()) + "  " + item +
-				strings.Repeat(" ", itemWidth-lipgloss.Width(truncate(e.item, itemWidth))+2) +
-				e.kind.style().Render(e.label())
-			if hint := e.hint(); hint != "" {
-				line += strings.Repeat(" ", labelWidth-lipgloss.Width(e.label())+2) + hintStyle.Render("→ "+hint)
+			line := marker + kindStyle(e.Kind).Render(icon(e)) + "  " + item +
+				strings.Repeat(" ", itemWidth-lipgloss.Width(truncate(e.Item, itemWidth))+2) +
+				kindStyle(e.Kind).Render(label(e))
+			if hint := hint(e); hint != "" {
+				line += strings.Repeat(" ", labelWidth-lipgloss.Width(label(e))+2) + hintStyle.Render("→ "+hint)
 			}
 			lines = append(lines, truncate(line, inner))
 		}
@@ -300,7 +300,7 @@ func (m Model) details() string {
 	var lines []string
 	if e, ok := m.current(); ok {
 		var blocks [][]string
-		for _, d := range e.details() {
+		for _, d := range details(e) {
 			style := lipgloss.NewStyle()
 			if strings.HasPrefix(d, "Key: ") {
 				style = faintStyle
@@ -319,7 +319,7 @@ func (m Model) details() string {
 				body[room-1] = truncate(ansi.Strip(body[room-1]), inner-1) + "…"
 			}
 		}
-		lines = append(lines, lipgloss.NewStyle().Bold(true).Render(e.item)+"  "+e.kind.style().Render(e.label()))
+		lines = append(lines, lipgloss.NewStyle().Bold(true).Render(e.Item)+"  "+kindStyle(e.Kind).Render(label(e)))
 		lines = append(lines, body...)
 		lines = append(lines, last...)
 	}

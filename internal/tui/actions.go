@@ -6,25 +6,41 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/s3r3nity-labs/linux-home-cloud-storage-sync/internal/app"
 	"github.com/s3r3nity-labs/linux-home-cloud-storage-sync/internal/config"
 	"github.com/s3r3nity-labs/linux-home-cloud-storage-sync/internal/linker"
 )
 
-// action is something the TUI can do to the selected entries. Every action is shown as a
-// dry run first (preview) and only runs after confirming.
-type action int
-
-const (
-	actFix     action = iota // what each entry needs: link, adopt or force
-	actLink                  // create-symlinks
-	actAdopt                 // create-symlinks --adopt
-	actForce                 // create-symlinks --force
-	actUnlink                // delete-symlinks
-	actRestore               // delete-symlinks --restore
-	actRemove                // remove from the config only, the files stay
+// Actions, previews and running them come from package app; the TUI adds the words.
+type (
+	action = app.Action
+	step   = app.Step
+	plan   = app.Plan
 )
 
-func (a action) title() string {
+const (
+	actFix     = app.ActFix     // what each entry needs: link, adopt or force
+	actLink    = app.ActLink    // create-symlinks
+	actAdopt   = app.ActAdopt   // create-symlinks --adopt
+	actForce   = app.ActForce   // create-symlinks --force
+	actUnlink  = app.ActUnlink  // delete-symlinks
+	actRestore = app.ActRestore // delete-symlinks --restore
+	actRemove  = app.ActRemove  // remove from the config only, the files stay
+)
+
+// doneMsg comes back from execute when the action has run.
+type doneMsg app.Result
+
+// execute runs the confirmed plan in the background: Bubble Tea calls the returned
+// function in its own goroutine and passes its result to Update as a message, so the
+// screen never freezes while files are moved.
+func execute(p plan, entries []entry, cfg config.Config, configPath string) tea.Cmd {
+	return func() tea.Msg {
+		return doneMsg(app.Apply(p, entries, cfg, configPath))
+	}
+}
+
+func actionTitle(a action) string {
 	return [...]string{
 		actFix:     "Fix",
 		actLink:    "Link",
@@ -37,7 +53,7 @@ func (a action) title() string {
 }
 
 // explain is the first line of the confirmation dialog.
-func (a action) explain() string {
+func actionExplain(a action) string {
 	return [...]string{
 		actFix:     "Each entry gets what it needs: link, adopt (move into the cloud) or force (backup, then link).",
 		actLink:    "Create the symlinks into the cloud.",
@@ -49,132 +65,12 @@ func (a action) explain() string {
 	}[a]
 }
 
-// linkOptions returns how to call the linker for an entry: Link with opts, or (unlink
-// true) Unlink with unlinkOpts. For fix it depends on what the entry needs.
-func (a action) linkOptions(e entry) (opts linker.Options, unlink bool, unlinkOpts linker.UnlinkOptions) {
-	switch a {
-	case actAdopt:
-		opts.Adopt = true
-	case actForce:
-		opts.Force = true
-	case actFix:
-		switch e.kind {
-		case kindLocalOnly:
-			opts.Adopt = true
-		case kindBothExist, kindBadLink:
-			opts.Force = true
-		}
-	case actUnlink:
-		return opts, true, linker.UnlinkOptions{}
-	case actRestore:
-		return opts, true, linker.UnlinkOptions{Restore: true}
-	}
-	return opts, false, linker.UnlinkOptions{}
-}
-
-// run applies the action to one entry, for real or as a dry run.
-func (a action) run(e entry, dryRun bool) linker.Result {
-	opts, unlink, unlinkOpts := a.linkOptions(e)
-	if unlink {
-		unlinkOpts.DryRun = dryRun
-		return linker.Unlink(e.source, e.target, unlinkOpts)
-	}
-	opts.DryRun = dryRun
-	return linker.Link(e.source, e.target, opts)
-}
-
-// step is one line of a preview or a result: the entry and what happens (or happened).
-type step struct {
-	item   string
-	result linker.Result
-	// does: the dry run says something would change. Only these run on confirm.
-	does bool
-}
-
-// plan is a confirmation dialog waiting for yes or no.
-type plan struct {
-	action action
-	steps  []step
-}
-
-func (p plan) count() int {
-	n := 0
-	for _, s := range p.steps {
-		if s.does {
-			n++
-		}
-	}
-	return n
-}
-
-// preview dry-runs the action for the given entries.
-func preview(a action, entries []entry) plan {
-	p := plan{action: a}
-	for _, e := range entries {
-		if a == actRemove {
-			p.steps = append(p.steps, step{item: e.item, does: true})
-			continue
-		}
-		r := a.run(e, true)
-		p.steps = append(p.steps, step{item: e.item, result: r, does: wouldChange(r.State)})
-	}
-	return p
-}
-
-func wouldChange(s linker.State) bool {
-	switch s {
-	case linker.WouldCreate, linker.WouldAdopt, linker.WouldReplace, linker.WouldBackUp,
-		linker.WouldRemove, linker.WouldRestore:
-		return true
-	}
-	return false
-}
-
-// doneMsg comes back from execute when the action has run.
-type doneMsg struct {
-	action action
-	steps  []step
-	err    error // only for actRemove: saving the config failed
-}
-
-// execute runs the confirmed plan in the background: Bubble Tea calls the returned
-// function in its own goroutine and passes its result to Update as a message, so the
-// screen never freezes while files are moved.
-func execute(p plan, entries map[string]entry, cfg config.Config, configPath string) tea.Cmd {
-	return func() tea.Msg {
-		done := doneMsg{action: p.action}
-		if p.action == actRemove {
-			remove := map[string]bool{}
-			for _, s := range p.steps {
-				remove[s.item] = true
-			}
-			var keep []string
-			for _, item := range cfg.SymlinkMap {
-				if !remove[item] {
-					keep = append(keep, item)
-				}
-			}
-			done.steps = p.steps
-			done.err = config.SaveSymlinkMap(configPath, cfg, keep)
-			return done
-		}
-		for _, s := range p.steps {
-			if !s.does {
-				continue
-			}
-			r := p.action.run(entries[s.item], false)
-			done.steps = append(done.steps, step{item: s.item, result: r, does: r.State != linker.Failed})
-		}
-		return done
-	}
-}
-
 // describe is one line for a step, in the dialog and in the results.
 func describe(a action, s step) string {
 	if a == actRemove {
 		return "remove from the config"
 	}
-	r := s.result
+	r := s.Result
 	switch r.State {
 	case linker.WouldCreate:
 		return "link to " + short(r.Source)

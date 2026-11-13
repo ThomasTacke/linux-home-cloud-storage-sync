@@ -73,12 +73,12 @@ func TestKinds(t *testing.T) {
 	m := New(fixture(t), "", "")
 	want := []kind{kindLinked, kindNotLinked, kindLocalOnly, kindBothExist, kindBadLink, kindNotInCloud}
 	for i, e := range m.entries {
-		if e.kind != want[i] {
-			t.Errorf("%s: kind %d, want %d (status %v)", e.item, e.kind, want[i], e.status.State)
+		if e.Kind != want[i] {
+			t.Errorf("%s: kind %d, want %d (status %v)", e.Item, e.Kind, want[i], e.Status.State)
 		}
 	}
-	if m.entries[2].what != "file" || m.entries[3].what != "folder" {
-		t.Errorf("what = %q, %q", m.entries[2].what, m.entries[3].what)
+	if m.entries[2].What != "file" || m.entries[3].What != "folder" {
+		t.Errorf("what = %q, %q", m.entries[2].What, m.entries[3].What)
 	}
 }
 
@@ -110,23 +110,23 @@ func TestScreenShowsEveryEntryAndTheSelectedDetails(t *testing.T) {
 func TestCursorMovesAndDetailsFollow(t *testing.T) {
 	m := sized(New(fixture(t), "", ""), 100, 30)
 	m = press(m, char('j'), down) // .gitconfig
-	if e, _ := m.current(); e.item != ".gitconfig" {
-		t.Fatalf("selected %q", e.item)
+	if e, _ := m.current(); e.Item != ".gitconfig" {
+		t.Fatalf("selected %q", e.Item)
 	}
 	if out := screen(m); !strings.Contains(out, "Key: enter (or a) to adopt.") {
 		t.Errorf("details lack the adopt key:\n%s", out)
 	}
 	m = press(m, char('G'))
-	if e, _ := m.current(); e.item != "Templates" {
-		t.Errorf("G selected %q", e.item)
+	if e, _ := m.current(); e.Item != "Templates" {
+		t.Errorf("G selected %q", e.Item)
 	}
 	m = press(m, char('j'), char('j')) // stays at the end
-	if e, _ := m.current(); e.item != "Templates" {
-		t.Errorf("past the end selected %q", e.item)
+	if e, _ := m.current(); e.Item != "Templates" {
+		t.Errorf("past the end selected %q", e.Item)
 	}
 	m = press(m, char('g'))
-	if e, _ := m.current(); e.item != ".config/fish" {
-		t.Errorf("g selected %q", e.item)
+	if e, _ := m.current(); e.Item != ".config/fish" {
+		t.Errorf("g selected %q", e.Item)
 	}
 }
 
@@ -148,8 +148,8 @@ func TestFilter(t *testing.T) {
 	if m.mode == modeFilter || len(m.visible) != 1 {
 		t.Fatalf("after enter: filtering=%v visible=%d", m.mode == modeFilter, len(m.visible))
 	}
-	if e, _ := m.current(); e.item != "Music" {
-		t.Errorf("selected %q", e.item)
+	if e, _ := m.current(); e.Item != "Music" {
+		t.Errorf("selected %q", e.Item)
 	}
 	m = press(m, esc)
 	if m.filter.Value() != "" || len(m.visible) != 6 {
@@ -188,8 +188,8 @@ func TestRefreshKeepsSelectionAndSeesChanges(t *testing.T) {
 	m = press(m, char('r'))
 
 	e, _ := m.current()
-	if e.item != "Pictures" || e.kind != kindLinked {
-		t.Errorf("after refresh: %q kind %d", e.item, e.kind)
+	if e.Item != "Pictures" || e.Kind != kindLinked {
+		t.Errorf("after refresh: %q kind %d", e.Item, e.Kind)
 	}
 }
 

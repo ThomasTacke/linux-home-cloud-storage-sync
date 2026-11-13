@@ -278,9 +278,11 @@ go run . create-symlinks -n
 - `cmd/` – the Cobra commands and their output
 - `internal/config/` – reading, validating and writing the JSON config
 - `internal/linker/` – deciding what to do for one entry and creating the link
+- `internal/app/` – what the interactive front ends share: state of every entry, actions
+  with dry-run preview and apply, adding and removing entries (no wording)
 - `internal/tui/` – the `tui` view ([Bubble Tea](https://github.com/charmbracelet/bubbletea) v2:
-  `model.go` state, modes and keys, `view.go` drawing and dialogs, `entry.go` status per
-  entry, `actions.go` preview and running of actions, `picker.go` new entries)
+  `model.go` state, modes and keys, `view.go` drawing and dialogs, `entry.go` and
+  `actions.go` the TUI's words for states and actions, `picker.go` the file picker)
 
 ---
 
