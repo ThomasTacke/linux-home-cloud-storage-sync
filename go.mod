@@ -1,4 +1,4 @@
-module github.com/ThomasTacke/linux-home-cloud-storage-sync
+module github.com/s3r3nity-labs/linux-home-cloud-storage-sync
 
 go 1.25.0
 

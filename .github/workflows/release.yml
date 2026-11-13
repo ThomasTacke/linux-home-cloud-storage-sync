@@ -26,3 +26,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Fine-grained token, Contents read/write on s3r3nity-labs/homebrew-tap only:
+          # the cask is committed there. Expires 2027-11-14
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

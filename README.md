@@ -99,10 +99,16 @@ The cloud copy is never touched, the other machines still use it.
 
 ## Installation
 
+With [Homebrew](https://brew.sh) (e.g. on Bazzite), updated by `brew upgrade`:
+
+```fish
+brew install s3r3nity-labs/tap/linux-home-cloud-storage-sync
+```
+
 From a release, no Go needed (`amd64`; for ARM replace it with `arm64`):
 
 ```fish
-curl -sL https://github.com/ThomasTacke/linux-home-cloud-storage-sync/releases/latest/download/linux-home-cloud-storage-sync_linux_amd64.tar.gz \
+curl -sL https://github.com/s3r3nity-labs/linux-home-cloud-storage-sync/releases/latest/download/linux-home-cloud-storage-sync_linux_amd64.tar.gz \
   | tar -xz -C ~/.local/bin linux-home-cloud-storage-sync
 ```
 
@@ -111,7 +117,7 @@ curl -sL https://github.com/ThomasTacke/linux-home-cloud-storage-sync/releases/l
 With Go 1.25 or newer:
 
 ```fish
-go install github.com/ThomasTacke/linux-home-cloud-storage-sync@latest
+go install github.com/s3r3nity-labs/linux-home-cloud-storage-sync@latest
 ```
 
 The binary lands in `~/go/bin` (add it to your `PATH`). Or build it yourself and copy the
@@ -122,7 +128,7 @@ CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o ~/.local/bin/linux-home-clo
 ```
 
 For a release build, set the version: `-ldflags "-s -w -X
-github.com/ThomasTacke/linux-home-cloud-storage-sync/cmd.version=v0.2.0"`. `go install
+github.com/s3r3nity-labs/linux-home-cloud-storage-sync/cmd.version=v0.2.0"`. `go install
 ...@v0.2.0` picks up the tag by itself.
 
 Shell completion for fish:
@@ -226,6 +232,10 @@ To release:
 2. `.github/workflows/release.yml` runs the tests and GoReleaser (`.goreleaser.yaml`):
    static binaries for `linux/amd64` and `linux/arm64`, as `.tar.gz` with README and
    LICENSE, plus `checksums.txt`, attached to the release. The text from step 1 stays.
+   It also commits the Homebrew cask to
+   [s3r3nity-labs/homebrew-tap](https://github.com/s3r3nity-labs/homebrew-tap), with the
+   repository secret `HOMEBREW_TAP_GITHUB_TOKEN` (fine-grained, Contents read/write on
+   that repository only; expires 2027-11-14, then regenerate it and update the secret).
 
 Local test build, nothing published: `goreleaser release --snapshot --clean` (output in
 `dist/`).

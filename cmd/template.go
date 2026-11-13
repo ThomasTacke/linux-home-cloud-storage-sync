@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ThomasTacke/linux-home-cloud-storage-sync/internal/config"
+	"github.com/s3r3nity-labs/linux-home-cloud-storage-sync/internal/config"
 )
 
 func newPrintTemplateConfigCmd() *cobra.Command {
