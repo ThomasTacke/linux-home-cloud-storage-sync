@@ -34,19 +34,14 @@ class CloudStorageConfig(BaseSchema):
         description="List of items to generate symlink for."
     )
 
-    @field_validator("cloud_storage_home_dir", mode="before")
+    @field_validator("cloud_storage_home_dir", "local_home_dir", mode="before")
     @classmethod
-    def _default_cloud_home(cls, value):
+    def _expand_home(cls, value, info):
         if not value:
-            raise ValueError('"cloud_storage_home_dir" was not provided to the model.')
-        return value or DEFAULT_CLOUD_STORAGE_HOME_DIR
-
-    @field_validator("local_home_dir", mode="before")
-    @classmethod
-    def _default_local_home(cls, value):
-        if not value:
-            raise ValueError('"local_home_dir" was not provided to the model.')
-        return value or DEFAULT_LOCAL_HOME_DIR
+            raise ValueError(f'"{info.field_name}" was not provided to the model.')
+        # "~/Nextcloud/LinuxHome" in the config means the current user's home. A string, as
+        # strict JSON validation turns only strings into paths
+        return str(pathlib.Path(value).expanduser())
 
     @classmethod
     def load(

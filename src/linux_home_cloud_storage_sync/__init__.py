@@ -35,12 +35,3 @@ __all__ = [
     "cli",
     "__version__",
 ]
-
-# --------------------------------------------------------------------------- #
-# Version handling
-# --------------------------------------------------------------------------- #
-try:
-    __version__ = version(__name__)  # will read the version from the installed metadata
-except PackageNotFoundError:  # pragma: no cover
-    # Package is not installed (e.g. running from a source checkout)
-    __version__ = "0.0.0+dev"

@@ -55,7 +55,12 @@ and then applies this rule:
 | ------------------------------------ | -------------------------------------------------- |
 | source exists **and** target missing | create symlink `target → source`                   |
 | source does **not** exist            | do nothing (just print a notice)                   |
-| target already exists                | do nothing (just print a notice)                   |
+| target is a symlink to source        | do nothing (reported as symlink)                   |
+| target is a symlink to somewhere else, or a broken one | do nothing (reported in red, with where it points) |
+| target is a real file or directory   | do nothing (just print a notice)                   |
+
+Paths in the config may start with `~`, which means the home of the user running the
+tool.
 
 So the direction is **cloud → home**: the authoritative copy must already live inside
 `cloudStorageHomeDir`. The tool will **not** migrate an existing file for you, and it will
@@ -102,6 +107,9 @@ poetry env activate
 
 # 5. (Optional) Run your IDE
 code ./
+
+# 6. Run the tests
+poetry run pytest
 ```
 
 ---
