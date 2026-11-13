@@ -37,6 +37,6 @@ func NewRootCmd() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.SetVersionTemplate(Name + " {{.Version}}\n")
-	root.AddCommand(newCreateSymlinksCmd(), newDeleteSymlinksCmd(), newPrintTemplateConfigCmd(), newWriteDefaultConfigCmd())
+	root.AddCommand(newCreateSymlinksCmd(), newDeleteSymlinksCmd(), newTUICmd(), newPrintTemplateConfigCmd(), newWriteDefaultConfigCmd())
 	return root
 }
