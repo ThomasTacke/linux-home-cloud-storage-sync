@@ -16,10 +16,11 @@ import (
 func newTUICmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "tui [config]",
-		Short: "Shows the status of every entry interactively (read-only)",
+		Short: "Interactive view: status, fix, adopt, force, delete, add entries",
 		Long: `Opens a full-screen view of the config (default: ` + config.DefaultPath() + `):
-every entry with its status, details for the selected one and the command that would fix
-it. It only looks, it changes nothing.`,
+every entry with its status and details. Select entries with space and fix, link, adopt,
+force or delete them; every action shows its dry run first and only runs after confirming.
+n adds a new entry (saved to the config), ? shows all keys.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := configPath(args)
@@ -34,7 +35,7 @@ it. It only looks, it changes nothing.`,
 			case err != nil:
 				return err
 			}
-			_, err = tea.NewProgram(tui.New(cfg, note)).Run()
+			_, err = tea.NewProgram(tui.New(cfg, path, note)).Run()
 			return err
 		},
 	}

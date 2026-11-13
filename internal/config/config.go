@@ -144,3 +144,63 @@ func (c Config) Write(path string) error {
 	}
 	return os.WriteFile(path, []byte(c.JSON()+"\n"), 0o644)
 }
+
+// SaveSymlinkMap replaces symlinkMap in the config file at path and leaves everything else
+// as written (e.g. "~" in the paths, unknown keys). A missing file is created from cfg.
+//
+// The config usually lives in the cloud and path is a symlink to it: the write goes to
+// the link's destination, so the link stays and the file keeps syncing. It's written to a
+// temporary file next to it and renamed, so a crash never leaves half a config.
+func SaveSymlinkMap(path string, cfg Config, items []string) error {
+	if items == nil {
+		items = []string{}
+	}
+	real, err := filepath.EvalSymlinks(path)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		cfg.SymlinkMap = items
+		return cfg.Write(path)
+	case err != nil:
+		return err
+	}
+
+	data, err := os.ReadFile(real)
+	if err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("%s: %w", path, err)
+	}
+	list, err := json.Marshal(items)
+	if err != nil {
+		return err
+	}
+	raw["symlinkMap"] = list
+	out, err := json.MarshalIndent(raw, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	info, err := os.Stat(real)
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(real), ".config.json.*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name()) // no-op after the rename
+	if _, err := tmp.Write(append(out, '\n')); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(info.Mode().Perm()); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), real)
+}

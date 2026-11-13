@@ -31,7 +31,7 @@
 | `--adopt`: move a local file/folder into the cloud        | ✅      |
 | `--force`: replace links, set local copies aside          | ✅      |
 | `delete-symlinks` (optionally `--restore` a copy)         | ✅      |
-| `tui`: interactive status view (read-only for now)        | ✅      |
+| `tui`: interactive view with actions and new entries      | ✅      |
 | `~` in config paths                                       | ✅      |
 | Shell completion (fish, bash, zsh)                        | ✅      |
 | Unit tests                                                | ✅      |
@@ -183,7 +183,7 @@ Available Commands:
   delete-symlinks       Removes the symlinks into CloudStorage/LinuxHome again
   help                  Help about any command
   print-template-config Prints the template configuration
-  tui                   Shows the status of every entry interactively (read-only)
+  tui                   Interactive view: status, fix, adopt, force, delete, add entries
   write-default-config  Writes the template configuration
 
 Flags:
@@ -204,10 +204,24 @@ The target "/home/kiwi/Music" is a broken symlink to "/home/kiwi/Old/Music", not
 The source "/home/kiwi/Nextcloud/LinuxHome/Templates" does not exist.
 ```
 
-`tui [config]` shows the same as a full-screen view: every entry with an icon and its
-status, what `--adopt`/`--force` would do about it, and details for the selected entry
-including the command that fixes it. Keys: `↑`/`↓` (or `k`/`j`), `/` to filter, `r` to
-check again, `?` for all keys, `q` to quit. It only looks, it changes nothing (yet).
+`tui [config]` is the same as a full-screen view: every entry with an icon, its status
+and what would fix it, details for the selected one, and actions on the selection. Every
+action shows its dry run in a dialog first and only runs after `y`/`enter`.
+
+| Key | |
+| --- | --- |
+| `↑`/`↓` (`k`/`j`), `g`/`G` | move |
+| `space`, `ctrl+a`, `esc` | select (and move on), select all shown, clear selection (then filter) |
+| `enter` | **fix**: what each entry needs (link, adopt or force) |
+| `l` / `a` / `f` | link / adopt / force, like the `create-symlinks` flags |
+| `d` / `D` | delete the link / replace it with a copy (`delete-symlinks`, `--restore`) |
+| `n` | **new entry**: pick a file or folder in `$HOME`, it's added to the config and adopted (or linked) after confirming |
+| `x` | remove from the config (nothing on disk changes) |
+| `/`, `r`, `?`, `q` | filter, check again, all keys, quit |
+
+Actions apply to the selected entries, or to the one under the cursor when nothing is
+selected. Saving the config only rewrites `symlinkMap`; `~` in its paths and other keys
+stay, and when the config is a symlink into the cloud, the link stays too.
 
 ```
 linux-home-cloud-storage-sync  ~/Nextcloud/LinuxHome                    ✓ 1  ○ 1  ● 2  ✗ 1  · 1
@@ -223,9 +237,28 @@ linux-home-cloud-storage-sync  ~/Nextcloud/LinuxHome                    ✓ 1  �
 │ .gitconfig  only in $HOME                                                                        │
 │ ~/.gitconfig is a real file, the cloud has none yet.                                             │
 │ adopt: move it to ~/Nextcloud/LinuxHome/.gitconfig and link it back.                             │
-│ Run: linux-home-cloud-storage-sync create-symlinks --adopt                                       │
+│ Key: enter (or a) to adopt.                                                                      │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
-↑/k up • ↓/j down • / filter • r refresh • ? more keys • q quit
+space select • enter fix • n new entry • / filter • ? more keys • q quit
+```
+
+With entries selected, `enter` opens the dialog on top of the list:
+
+```
+╭──────────────────────────────────────────────────────────────────────────────────╮
+│ Fix 4 entries?                                                                   │
+│                                                                                  │
+│ Each entry gets what it needs: link, adopt (move into the cloud) or force        │
+│ (backup, then link). 2 have nothing to do and are skipped.                       │
+│                                                                                  │
+│ · .config/fish  skip: already linked                                             │
+│ → Pictures      link to ~/Nextcloud/LinuxHome/Pictures                           │
+│ → .gitconfig    move to ~/Nextcloud/LinuxHome/.gitconfig, link it back           │
+│ → Documents     rename to Documents.backup-20261114-000617, link the cloud copy  │
+│ → Music         replace the link to ~/Old/Music                                  │
+│ · Templates     skip: not in the cloud                                           │
+╰──────────────────────────────────────────────────────────────────────────────────╯
+y/enter do it • n/esc cancel
 ```
 
 Both exit with 1 on an invalid config (listing every problem) or when an entry failed
@@ -246,7 +279,8 @@ go run . create-symlinks -n
 - `internal/config/` – reading, validating and writing the JSON config
 - `internal/linker/` – deciding what to do for one entry and creating the link
 - `internal/tui/` – the `tui` view ([Bubble Tea](https://github.com/charmbracelet/bubbletea) v2:
-  `model.go` state and keys, `view.go` drawing, `entry.go` status per entry)
+  `model.go` state, modes and keys, `view.go` drawing and dialogs, `entry.go` status per
+  entry, `actions.go` preview and running of actions, `picker.go` new entries)
 
 ---
 
