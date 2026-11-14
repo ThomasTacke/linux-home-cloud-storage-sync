@@ -228,7 +228,7 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-medium">{entry.item}</p>
-                  <p class="text-muted-foreground truncate text-sm">
+                  <p class="text-muted-foreground line-clamp-2 text-sm" title={entry.pointsTo ? `points to ${entry.pointsTo}` : undefined}>
                     {info.text}
                     {#if entry.pointsTo}(points to {entry.pointsTo}){/if}
                     {#if entry.detail}{entry.detail}{/if}
