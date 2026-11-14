@@ -33,6 +33,13 @@ export function Apply(action: $models.Action, items: string[] | null): $Cancella
 }
 
 /**
+ * ChooseCloudFolder opens the system's folder dialog for "another cloud folder".
+ */
+export function ChooseCloudFolder(): $CancellablePromise<string> {
+    return $Call.ByID(1474793868);
+}
+
+/**
  * ChooseFile opens the system's file dialog in the home folder (for single settings
  * files, an advanced thing).
  */
@@ -60,4 +67,27 @@ export function Overview(): $CancellablePromise<$models.Overview> {
  */
 export function Preview(action: $models.Action, items: string[] | null): $CancellablePromise<$models.Plan> {
     return $Call.ByID(1529234206, action, items);
+}
+
+/**
+ * SetupApply writes the config and does what SetupPreview showed (checked again first).
+ * It refuses to replace an existing config.
+ */
+export function SetupApply(cloudRoot: string, items: string[] | null): $CancellablePromise<$models.Result> {
+    return $Call.ByID(2700884481, cloudRoot, items);
+}
+
+/**
+ * SetupInfo suggests cloud folders and lists the usual home folders.
+ */
+export function SetupInfo(): $CancellablePromise<$models.SetupInfo> {
+    return $Call.ByID(3748729915);
+}
+
+/**
+ * SetupPreview shows what setting up would do: the same dry run as Fix, for a config that
+ * isn't written yet. It changes nothing.
+ */
+export function SetupPreview(cloudRoot: string, items: string[] | null): $CancellablePromise<$models.Plan> {
+    return $Call.ByID(1642899961, cloudRoot, items);
 }

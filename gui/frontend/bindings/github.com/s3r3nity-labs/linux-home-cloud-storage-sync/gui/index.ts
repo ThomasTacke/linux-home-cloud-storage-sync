@@ -14,9 +14,12 @@ export {
 
 export type {
     Added,
+    CloudOption,
     Entry,
     Overview,
     Plan,
     Result,
+    SetupFolder,
+    SetupInfo,
     Step
 } from "./models.js";

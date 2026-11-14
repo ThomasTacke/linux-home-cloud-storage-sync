@@ -51,6 +51,26 @@ export interface Added {
 }
 
 /**
+ * CloudOption is a cloud folder the wizard suggests.
+ */
+export interface CloudOption {
+    /**
+     * e.g. "Nextcloud"
+     */
+    "name": string;
+
+    /**
+     * full path
+     */
+    "path": string;
+
+    /**
+     * ~/… for display
+     */
+    "show": string;
+}
+
+/**
  * Entry is one folder or file in the list.
  */
 export interface Entry {
@@ -215,6 +235,38 @@ export interface Result {
      * Error is set when saving the list failed (ActionRemove).
      */
     "error"?: string;
+}
+
+/**
+ * SetupFolder is one of the usual home folders, with this system's name for it.
+ */
+export interface SetupFolder {
+    /**
+     * "documents", "pictures", …: for the icon and the English name
+     */
+    "key": string;
+
+    /**
+     * the folder's name in the home folder, e.g. "Dokumente"
+     */
+    "item": string;
+
+    /**
+     * it exists on this computer
+     */
+    "exists": boolean;
+}
+
+/**
+ * SetupInfo is what the wizard starts with.
+ */
+export interface SetupInfo {
+    /**
+     * ~ for display
+     */
+    "home": string;
+    "clouds": CloudOption[] | null;
+    "folders": SetupFolder[] | null;
 }
 
 /**

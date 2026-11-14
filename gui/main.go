@@ -35,8 +35,12 @@ func main() {
 		Description: "Keeps your folders in your cloud storage, linked into your home",
 		Icon:        appIcon,
 		Services: []application.Service{
-			// HOME_SYNC_CONFIG points to another config, e.g. a test setup
-			application.NewService(&SyncService{configPath: os.Getenv("HOME_SYNC_CONFIG")}),
+			// For test setups: HOME_SYNC_CONFIG points to another config, HOME_SYNC_HOME to
+			// another home folder for the setup wizard
+			application.NewService(&SyncService{
+				configPath: os.Getenv("HOME_SYNC_CONFIG"),
+				homeDir:    os.Getenv("HOME_SYNC_HOME"),
+			}),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
