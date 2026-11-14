@@ -25,6 +25,19 @@
   <url type="homepage">https://github.com/s3r3nity-labs/linux-home-cloud-storage-sync</url>
   <url type="bugtracker">https://github.com/s3r3nity-labs/linux-home-cloud-storage-sync/issues</url>
   <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.6.1" date="2026-11-14">
+      <description>
+        <p>Home Sync has its own icon now: a house in the cloud, kept in sync.</p>
+      </description>
+    </release>
+    <release version="0.6.0" date="2026-11-14">
+      <description>
+        <p>First release of Home Sync: set up in three steps, see what's in sync, and fix
+        what isn't, with a preview before anything happens.</p>
+      </description>
+    </release>
+  </releases>
   <branding>
     <color type="primary" scheme_preference="light">#f4c2d6</color>
     <color type="primary" scheme_preference="dark">#7a1d47</color>
