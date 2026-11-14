@@ -45,7 +45,7 @@
     running = true;
     error = "";
     try {
-      const items = plan.steps.filter((s) => s.change).map((s) => s.item);
+      const items = (plan.steps ?? []).filter((s) => s.change).map((s) => s.item);
       result = await SyncService.Apply(plan.action, items);
       ondone();
     } catch (e) {
@@ -71,15 +71,15 @@
           {#if note}<span class="text-foreground block">{note}</span>{/if}
           {#if !result}
             {info.intro}
-            {#if plan.steps.length > plan.changes}
-              {plan.steps.length - plan.changes} of the chosen items need nothing and stay as they are.
+            {#if (plan.steps ?? []).length > plan.changes}
+              {(plan.steps ?? []).length - plan.changes} of the chosen items need nothing and stay as they are.
             {/if}
           {/if}
         </Dialog.Description>
       </Dialog.Header>
 
       <ul class="flex max-h-80 flex-col gap-2 overflow-y-auto py-2">
-        {#each result ? result.steps : plan.steps as step (step.item)}
+        {#each (result ? result.steps : plan.steps) ?? [] as step (step.item)}
           <li class="flex items-start gap-3 text-sm {step.change || result ? '' : 'opacity-60'}">
             <span class="mt-0.5">
               {#if result}
