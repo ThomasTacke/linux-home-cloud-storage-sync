@@ -16,6 +16,11 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// The app icon, also for the window's title bar (without it, Linux shows Wails' logo).
+//
+//go:embed build/appicon.png
+var appIcon []byte
+
 // main starts Home Sync: the SyncService for the frontend and one window.
 func main() {
 
@@ -27,6 +32,7 @@ func main() {
 	app := application.New(application.Options{
 		Name:        "Home Sync",
 		Description: "Keeps your folders in your cloud storage, linked into your home",
+		Icon:        appIcon,
 		Services: []application.Service{
 			application.NewService(&SyncService{}),
 		},
