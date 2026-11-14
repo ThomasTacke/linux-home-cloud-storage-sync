@@ -4,7 +4,7 @@ go 1.26.7
 
 require github.com/wailsapp/wails/v3 v3.1.0
 
-require github.com/s3r3nity-labs/linux-home-cloud-storage-sync v0.0.0
+require github.com/s3r3nity-labs/linux-home-cloud-storage-sync v0.6.2
 
 require (
 	github.com/coder/websocket v1.8.14 // indirect
