@@ -14,7 +14,7 @@ under the names the desktop uses (Dokumente, Bilder, … on a German system, fro
 entry and whether it's in sync, and fixes it: a button per item for what it needs, a menu
 for Stop syncing and Remove from list, a selection bar for several items, and Add folder…
 (Add file… with hidden settings shown). Every action shows what will happen first and only
-runs after confirming. Releases carry it as a Flatpak bundle.
+runs after confirming. It's installed from the s3r3nity-labs Flatpak repository.
 
 ## Development
 
@@ -59,14 +59,18 @@ env HOME_SYNC_CONFIG=/tmp/homesync-fresh/config.json HOME_SYNC_HOME=/tmp/homesyn
 
 ## Flatpak
 
-Releases carry `Home-Sync-x86_64.flatpak` (built by `.github/workflows/flatpak.yml` from
-`build/flatpak/org.s3r3nity.HomeSync.yml`; pull requests touching `gui/` build it as a
-workflow artifact). Install by double-clicking it, or:
+Install from the s3r3nity-labs Flatpak repository (https://s3r3nity-labs.github.io/flatpak/),
+which also brings updates through the app store:
 
 ```fish
-flatpak install --user Home-Sync-x86_64.flatpak
-flatpak run org.s3r3nity.HomeSync
+flatpak install --user https://s3r3nity-labs.github.io/flatpak/org.s3r3nity.HomeSync.flatpakref
 ```
+
+Every release (and "Run workflow" on `.github/workflows/flatpak.yml`) builds
+`build/flatpak/org.s3r3nity.HomeSync.yml` into that repository, signed with the key in the
+secret `FLATPAK_GPG_PRIVATE_KEY`, and pushes it with `FLATPAK_REPO_TOKEN`. Releases also
+carry `Home-Sync-x86_64.flatpak` as a single-file download (no updates); pull requests
+touching what Home Sync is built from keep it as a workflow artifact.
 
 It runs on the GNOME 51 runtime (GTK4 and WebKitGTK 6.0 included, fetched from Flathub on
 install) with access to the home folder only. A cloud folder outside the home folder isn't
@@ -77,7 +81,7 @@ flatpak-builder --user --install-deps-from=flathub --force-clean --repo=flatpak-
 flatpak build-bundle flatpak-repo Home-Sync-x86_64.flatpak org.s3r3nity.HomeSync
 ```
 
-(from the repository root). No automatic updates yet; that comes with Flathub.
+(from the repository root, branch "master" unless `--default-branch=stable`).
 
 **Ubuntu: not from VSCode's terminal.** Ubuntu ships an AppArmor profile for VSCode
 (`/etc/apparmor.d/code`) that every process started from its integrated terminal inherits;

@@ -1,8 +1,14 @@
-# Home Sync as a Flatpak bundle (gui/build/flatpak/org.s3r3nity.HomeSync.yml).
-# Pull requests that touch what Home Sync is built from (gui/, and internal/ and the root
-# go.mod, which gui/ uses through `replace => ../`): built, the bundle kept as a workflow
-# artifact to try.
-# Published releases: built and attached to the release as Home-Sync-x86_64.flatpak.
+# Home Sync as a Flatpak (gui/build/flatpak/org.s3r3nity.HomeSync.yml), branch "stable".
+#
+# - Pull requests that touch what Home Sync is built from (gui/, and internal/ and the
+#   root go.mod, which gui/ uses through `replace => ../`): built unsigned, the bundle
+#   kept as a workflow artifact to try.
+# - Published releases, and "Run workflow" (manual, e.g. to fill the repository the first
+#   time): built into the signed repository s3r3nity-labs/flatpak (GitHub Pages), which
+#   users' app stores update from. Releases also get Home-Sync-x86_64.flatpak attached.
+#
+# Secrets: FLATPAK_GPG_PRIVATE_KEY (signs the repository), FLATPAK_REPO_TOKEN
+# (fine-grained, Contents read/write on s3r3nity-labs/flatpak only).
 name: Flatpak
 
 on:
@@ -15,17 +21,44 @@ on:
       - ".github/workflows/flatpak.yml"
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# Never two publishes at once: both would push to s3r3nity-labs/flatpak
+concurrency:
+  group: flatpak-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: false
 
 jobs:
   bundle:
     runs-on: ubuntu-24.04
     permissions:
       contents: write # upload to the release
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' }}
+      MANIFEST: gui/build/flatpak/org.s3r3nity.HomeSync.yml
+      APP_ID: org.s3r3nity.HomeSync
+      BRANCH: stable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check out the Flatpak repository
+        if: env.PUBLISH == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: s3r3nity-labs/flatpak
+          token: ${{ secrets.FLATPAK_REPO_TOKEN }}
+          path: pages
+
+      - name: Restore the repository's empty folders
+        # Git doesn't keep empty folders, but OSTree expects them
+        if: env.PUBLISH == 'true'
+        run: |
+          if [ -f pages/repo/config ]; then
+            mkdir -p pages/repo/{objects,tmp,state,extensions,refs/heads,refs/remotes,refs/mirrors}
+          fi
 
       - name: Install flatpak-builder
         run: |
@@ -33,25 +66,64 @@ jobs:
           sudo apt-get install -y flatpak flatpak-builder
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Build
-        # Installs the GNOME 51 runtime/SDK and the Go and Node extensions from Flathub.
-        # rofiles-fuse needs FUSE, which the runners don't offer.
+      - name: Import the signing key
+        if: env.PUBLISH == 'true'
+        env:
+          KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
         run: |
+          echo "$KEY" | gpg --batch --import
+          fpr=$(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')
+          echo "GPG_KEY=$fpr" >> "$GITHUB_ENV"
+          echo "Signing with $fpr"
+
+      - name: Build
+        # Into the published repository (signed) or a throwaway one. Installs the GNOME
+        # runtime/SDK and the Go and Node extensions from Flathub. rofiles-fuse needs FUSE,
+        # which the runners don't offer.
+        run: |
+          repo=flatpak-repo
+          sign=()
+          if [ "$PUBLISH" = true ]; then
+            repo=pages/repo
+            sign=(--gpg-sign="$GPG_KEY")
+          fi
+          echo "REPO=$repo" >> "$GITHUB_ENV"
           flatpak-builder --user --install-deps-from=flathub --disable-rofiles-fuse \
-            --force-clean --repo=flatpak-repo flatpak-build \
-            gui/build/flatpak/org.s3r3nity.HomeSync.yml
+            --default-branch="$BRANCH" "${sign[@]}" \
+            --force-clean --repo="$repo" flatpak-build "$MANIFEST"
+
+      - name: Update the repository
+        if: env.PUBLISH == 'true'
+        # Summary and deltas for fast updates; keep the last 3 builds per app
+        run: |
+          flatpak build-update-repo --generate-static-deltas --prune --prune-depth=3 \
+            --title="s3r3nity-labs" --gpg-sign="$GPG_KEY" "$REPO"
 
       - name: Bundle
         # --runtime-repo: installing the bundle fetches the GNOME runtime from Flathub
         run: |
           flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
-            flatpak-repo Home-Sync-x86_64.flatpak org.s3r3nity.HomeSync
+            "$REPO" Home-Sync-x86_64.flatpak "$APP_ID" "$BRANCH"
           ls -la Home-Sync-x86_64.flatpak
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Home-Sync-x86_64.flatpak
           path: Home-Sync-x86_64.flatpak
+
+      - name: Publish the repository
+        if: env.PUBLISH == 'true'
+        working-directory: pages
+        run: |
+          git config user.name "s3r3nity-labs release"
+          git config user.email "thomas@tacke.email"
+          git add -A repo
+          if git diff --cached --quiet; then
+            echo "Repository unchanged"
+          else
+            git commit -q -m "Home Sync ${{ github.event.release.tag_name || github.sha }}"
+            git push
+          fi
 
       - name: Attach to the release
         if: github.event_name == 'release'
