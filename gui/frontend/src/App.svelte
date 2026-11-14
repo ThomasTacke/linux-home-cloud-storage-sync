@@ -228,7 +228,7 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-medium">{entry.item}</p>
-                  <p class="text-muted-foreground truncate text-sm">
+                  <p class="text-muted-foreground line-clamp-2 text-sm" title={entry.pointsTo ? `points to ${entry.pointsTo}` : undefined}>
                     {info.text}
                     {#if entry.pointsTo}(points to {entry.pointsTo}){/if}
                     {#if entry.detail}{entry.detail}{/if}
@@ -259,7 +259,7 @@
                       </Button>
                     {/snippet}
                   </DropdownMenu.Trigger>
-                  <DropdownMenu.Content align="end">
+                  <DropdownMenu.Content align="end" class="min-w-52">
                     {#if entry.status === Status.StatusSynced}
                       <DropdownMenu.Item onSelect={() => start(Action.ActionStop, [entry.item])}>
                         {actionInfo[Action.ActionStop].label}
@@ -299,7 +299,7 @@
             <Button {...props} variant="outline">More…</Button>
           {/snippet}
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end">
+        <DropdownMenu.Content align="end" class="min-w-52">
           {#each [Action.ActionConnect, Action.ActionMove, Action.ActionUseCloud, Action.ActionStop] as action}
             <DropdownMenu.Item onSelect={() => start(action, selected)}>{actionInfo[action].label}</DropdownMenu.Item>
           {/each}
