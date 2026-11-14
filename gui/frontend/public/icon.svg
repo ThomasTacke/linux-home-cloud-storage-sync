@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect x="16" y="16" width="480" height="480" rx="96" fill="#c22d6f"/><rect x="44" y="44" width="424" height="424" rx="72" fill="#3a4142"/>
+<defs><clipPath id="f"><path d="M206 100h100v104l96 166c14 25-4 56-33 56H143c-29 0-47-31-33-56l96-166z"/></clipPath></defs>
+<path d="M206 100h100v104l96 166c14 25-4 56-33 56H143c-29 0-47-31-33-56l96-166z" fill="#f7f7f5"/>
+<g clip-path="url(#f)"><rect x="90" y="292" width="340" height="150" fill="#41a35b"/>
+<path d="M90 292c40-18 80 18 120 0s80-18 120 0 60 12 100 0v20H90z" fill="#5cc073"/></g>
+<path d="M206 100h100v104l96 166c14 25-4 56-33 56H143c-29 0-47-31-33-56l96-166z" fill="none" stroke="#2a2f30" stroke-width="14" stroke-linejoin="round"/>
+<rect x="188" y="86" width="136" height="28" rx="14" fill="#f7f7f5" stroke="#2a2f30" stroke-width="12"/>
+<circle cx="220" cy="360" r="12" fill="#f7f7f5" opacity=".85"/><circle cx="290" cy="385" r="9" fill="#f7f7f5" opacity=".85"/><circle cx="256" cy="330" r="7" fill="#f7f7f5" opacity=".85"/>
+<text x="256" y="262" font-family="DejaVu Sans Mono, monospace" font-weight="bold" font-size="76" text-anchor="middle" fill="#c22d6f">s3</text>
+</svg>

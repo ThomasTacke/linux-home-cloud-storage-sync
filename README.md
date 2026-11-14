@@ -98,6 +98,13 @@ The cloud copy is never touched, the other machines still use it.
 
 ---
 
+## Home Sync (desktop app, in progress)
+
+[`gui/`](gui/) is Home Sync, a desktop app on the same logic for people who don't use a
+terminal (Wails 3, Svelte, shadcn-svelte). It's read-only for now; see its README.
+
+---
+
 ## Installation
 
 With [Homebrew](https://brew.sh) (e.g. on Bazzite), updated by `brew upgrade`:
