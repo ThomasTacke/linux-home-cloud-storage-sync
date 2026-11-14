@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Home Sync
+Comment=Keeps your folders in your cloud storage, linked into your home
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/homesync %u
+Terminal=false
+Type=Application
+Icon=homesync
+Categories=Utility;
+StartupWMClass=homesync
+
+ 
