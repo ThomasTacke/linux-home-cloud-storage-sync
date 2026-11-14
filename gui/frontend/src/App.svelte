@@ -33,6 +33,7 @@
   import { statusInfo, toneBadge, toneText } from "$lib/status";
   import { actionInfo, primaryAction } from "$lib/actions";
   import ActionDialog from "$lib/ActionDialog.svelte";
+  import SetupWizard from "$lib/SetupWizard.svelte";
 
   // $state makes a variable reactive: the page updates whenever it changes.
   let overview = $state<Overview | null>(null);
@@ -173,16 +174,7 @@
         <Alert.Description>{error}</Alert.Description>
       </Alert.Root>
     {:else if overview?.needsSetup}
-      <Card.Root>
-        <Card.Header>
-          <Card.Title>Not set up yet</Card.Title>
-          <Card.Description>
-            There's no configuration at {overview.configPath}. Setting up from here comes in
-            the next version; until then, create it with
-            <code>linux-home-cloud-storage-sync write-default-config</code>.
-          </Card.Description>
-        </Card.Header>
-      </Card.Root>
+      <SetupWizard ondone={load} />
     {:else if loading && !overview}
       <div class="flex flex-col gap-3">
         {#each { length: 4 } as _}

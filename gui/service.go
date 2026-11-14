@@ -15,6 +15,8 @@ import (
 type SyncService struct {
 	// configPath is the config file; empty means the default path.
 	configPath string
+	// homeDir is the home folder the setup wizard works in; empty means $HOME.
+	homeDir string
 }
 
 // Status is one of the states an entry can be in, as the UI names them.
