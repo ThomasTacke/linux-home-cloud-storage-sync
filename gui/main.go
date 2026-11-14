@@ -48,6 +48,10 @@ func main() {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
+		// The Flatpak ID: desktops match the window to its menu entry and icon by it
+		Linux: application.LinuxOptions{
+			ApplicationID: "org.s3r3nity.HomeSync",
+		},
 	})
 
 	// Create a new window with the necessary options.

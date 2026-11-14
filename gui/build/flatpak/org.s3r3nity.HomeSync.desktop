@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Home Sync
+GenericName=Folder Sync
+Comment=Keep your folders in your cloud, the same on all your computers
+Exec=homesync
+Icon=org.s3r3nity.HomeSync
+Terminal=false
+Categories=Utility;FileTools;
+Keywords=Nextcloud;cloud;sync;folders;Dropbox;
+StartupNotify=true
+StartupWMClass=org.s3r3nity.HomeSync

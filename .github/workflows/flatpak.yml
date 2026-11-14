@@ -1,0 +1,55 @@
+# Home Sync as a Flatpak bundle (gui/build/flatpak/org.s3r3nity.HomeSync.yml).
+# Pull requests that touch gui/: built, the bundle kept as a workflow artifact to try.
+# Published releases: built and attached to the release as Home-Sync-x86_64.flatpak.
+name: Flatpak
+
+on:
+  pull_request:
+    paths:
+      - "gui/**"
+      - ".github/workflows/flatpak.yml"
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # upload to the release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+      - name: Build
+        # Installs the GNOME 51 runtime/SDK and the Go and Node extensions from Flathub.
+        # rofiles-fuse needs FUSE, which the runners don't offer.
+        run: |
+          flatpak-builder --user --install-deps-from=flathub --disable-rofiles-fuse \
+            --force-clean --repo=flatpak-repo flatpak-build \
+            gui/build/flatpak/org.s3r3nity.HomeSync.yml
+
+      - name: Bundle
+        # --runtime-repo: installing the bundle fetches the GNOME runtime from Flathub
+        run: |
+          flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
+            flatpak-repo Home-Sync-x86_64.flatpak org.s3r3nity.HomeSync
+          ls -la Home-Sync-x86_64.flatpak
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Home-Sync-x86_64.flatpak
+          path: Home-Sync-x86_64.flatpak
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" Home-Sync-x86_64.flatpak --clobber

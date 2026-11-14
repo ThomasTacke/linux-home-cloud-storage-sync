@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- What app stores (GNOME Software, Discover, Flathub) show about Home Sync -->
+<component type="desktop-application">
+  <id>org.s3r3nity.HomeSync</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Home Sync</name>
+  <summary>Keep your folders in your cloud, the same on all your computers</summary>
+  <developer id="org.s3r3nity">
+    <name>s3r3nity-labs</name>
+  </developer>
+  <description>
+    <p>
+      Home Sync keeps folders like Documents, Pictures and Music in your cloud folder
+      (Nextcloud, Dropbox, …) and links them back into your home folder. Everything stays
+      where you know it, and your other computers see the same files.
+    </p>
+    <ul>
+      <li>Sets itself up in three steps: cloud folder, folders, done</li>
+      <li>Shows at a glance what's in sync and what needs attention</li>
+      <li>Shows what will happen before anything happens; nothing is ever deleted</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">org.s3r3nity.HomeSync.desktop</launchable>
+  <url type="homepage">https://github.com/s3r3nity-labs/linux-home-cloud-storage-sync</url>
+  <url type="bugtracker">https://github.com/s3r3nity-labs/linux-home-cloud-storage-sync/issues</url>
+  <content_rating type="oars-1.1"/>
+  <branding>
+    <color type="primary" scheme_preference="light">#f4c2d6</color>
+    <color type="primary" scheme_preference="dark">#7a1d47</color>
+  </branding>
+</component>

@@ -14,7 +14,7 @@ under the names the desktop uses (Dokumente, Bilder, … on a German system, fro
 entry and whether it's in sync, and fixes it: a button per item for what it needs, a menu
 for Stop syncing and Remove from list, a selection bar for several items, and Add folder…
 (Add file… with hidden settings shown). Every action shows what will happen first and only
-runs after confirming. AppImage releases come next.
+runs after confirming. Releases carry it as a Flatpak bundle.
 
 ## Development
 
@@ -56,6 +56,28 @@ env HOME_SYNC_CONFIG=/tmp/homesync-fresh/config.json HOME_SYNC_HOME=/tmp/homesyn
   words for each state, action and step; `frontend/src/lib/components/ui` – shadcn-svelte components
 - `go.mod` uses the parent module through `replace … => ../`, so the CLI's `go.mod`
   stays free of Wails and cgo
+
+## Flatpak
+
+Releases carry `Home-Sync-x86_64.flatpak` (built by `.github/workflows/flatpak.yml` from
+`build/flatpak/org.s3r3nity.HomeSync.yml`; pull requests touching `gui/` build it as a
+workflow artifact). Install by double-clicking it, or:
+
+```fish
+flatpak install --user Home-Sync-x86_64.flatpak
+flatpak run org.s3r3nity.HomeSync
+```
+
+It runs on the GNOME 51 runtime (GTK4 and WebKitGTK 6.0 included, fetched from Flathub on
+install) with access to the home folder only. A cloud folder outside the home folder isn't
+reachable from inside the Flatpak. Building locally needs `flatpak-builder`:
+
+```fish
+flatpak-builder --user --install-deps-from=flathub --force-clean --repo=flatpak-repo flatpak-build gui/build/flatpak/org.s3r3nity.HomeSync.yml
+flatpak build-bundle flatpak-repo Home-Sync-x86_64.flatpak org.s3r3nity.HomeSync
+```
+
+(from the repository root). No automatic updates yet; that comes with Flathub.
 
 **Ubuntu: not from VSCode's terminal.** Ubuntu ships an AppArmor profile for VSCode
 (`/etc/apparmor.d/code`) that every process started from its integrated terminal inherits;

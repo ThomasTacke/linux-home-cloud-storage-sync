@@ -5,3 +5,9 @@
 # Test and coverage output
 *.test
 *.out
+
+# Flatpak builds (gui/build/flatpak)
+.flatpak-builder/
+flatpak-build/
+flatpak-repo/
+*.flatpak
