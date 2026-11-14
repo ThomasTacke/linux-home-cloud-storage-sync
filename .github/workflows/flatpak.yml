@@ -1,5 +1,7 @@
 # Home Sync as a Flatpak bundle (gui/build/flatpak/org.s3r3nity.HomeSync.yml).
-# Pull requests that touch gui/: built, the bundle kept as a workflow artifact to try.
+# Pull requests that touch what Home Sync is built from (gui/, and internal/ and the root
+# go.mod, which gui/ uses through `replace => ../`): built, the bundle kept as a workflow
+# artifact to try.
 # Published releases: built and attached to the release as Home-Sync-x86_64.flatpak.
 name: Flatpak
 
@@ -7,6 +9,9 @@ on:
   pull_request:
     paths:
       - "gui/**"
+      - "internal/**"
+      - "go.mod"
+      - "go.sum"
       - ".github/workflows/flatpak.yml"
   release:
     types: [published]
