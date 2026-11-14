@@ -4,6 +4,7 @@ import (
 	"embed"
 
 	"log"
+	"os"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -34,7 +35,8 @@ func main() {
 		Description: "Keeps your folders in your cloud storage, linked into your home",
 		Icon:        appIcon,
 		Services: []application.Service{
-			application.NewService(&SyncService{}),
+			// HOME_SYNC_CONFIG points to another config, e.g. a test setup
+			application.NewService(&SyncService{configPath: os.Getenv("HOME_SYNC_CONFIG")}),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
