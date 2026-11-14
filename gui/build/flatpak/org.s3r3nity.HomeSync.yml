@@ -1,0 +1,56 @@
+# Flatpak manifest for Home Sync, built by .github/workflows/flatpak.yml:
+#   flatpak-builder --user --install-deps-from=flathub --force-clean --repo=repo build \
+#     gui/build/flatpak/org.s3r3nity.HomeSync.yml
+#   flatpak build-bundle repo Home-Sync.flatpak org.s3r3nity.HomeSync
+#
+# The GNOME runtime brings GTK4 and WebKitGTK 6.0, so Home Sync runs the same on every
+# distribution. Built inside the SDK, so it links exactly against the runtime's libraries.
+id: org.s3r3nity.HomeSync
+runtime: org.gnome.Platform
+runtime-version: "51"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.golang
+  - org.freedesktop.Sdk.Extension.node26
+command: homesync
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # Home Sync's whole job is moving and linking folders in the home folder (the cloud
+  # folder is usually inside it too)
+  - --filesystem=home
+modules:
+  - name: homesync
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/golang/bin:/usr/lib/sdk/node26/bin
+      # go mod download and npm ci need the network. Fine for our own bundle; Flathub
+      # builds offline and would need the dependencies listed as sources instead.
+      build-args:
+        - --share=network
+      env:
+        GOPATH: /run/build/homesync/.go
+        GOCACHE: /run/build/homesync/.gocache
+        GOFLAGS: -modcacherw
+        CGO_ENABLED: "1"
+        npm_config_cache: /run/build/homesync/.npm
+    build-commands:
+      - cd gui/frontend && npm ci --no-audit --no-fund && npm run build
+      - cd gui && go build -tags production -trimpath -buildvcs=false -ldflags="-w -s" -o homesync .
+      - install -Dm755 gui/homesync /app/bin/homesync
+      - install -Dm644 gui/build/flatpak/org.s3r3nity.HomeSync.desktop /app/share/applications/org.s3r3nity.HomeSync.desktop
+      - install -Dm644 gui/build/flatpak/org.s3r3nity.HomeSync.metainfo.xml /app/share/metainfo/org.s3r3nity.HomeSync.metainfo.xml
+      - install -Dm644 gui/frontend/public/icon.svg /app/share/icons/hicolor/scalable/apps/org.s3r3nity.HomeSync.svg
+    sources:
+      - type: dir
+        path: ../../..
+        skip:
+          - .git
+          - gui/bin
+          - gui/frontend/node_modules
+          - gui/frontend/dist
+          - .flatpak-builder
+          - flatpak-build
+          - flatpak-repo
