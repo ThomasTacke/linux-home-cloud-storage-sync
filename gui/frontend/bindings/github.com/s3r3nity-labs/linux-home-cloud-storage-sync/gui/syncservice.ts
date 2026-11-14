@@ -17,8 +17,47 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as $models from "./models.js";
 
 /**
+ * AddEntry adds a file or folder (a path in the home folder) to the list and saves it.
+ * It doesn't move or link anything; the frontend offers that next.
+ */
+export function AddEntry(path: string): $CancellablePromise<$models.Added> {
+    return $Call.ByID(41386999, path);
+}
+
+/**
+ * Apply runs action on items. It checks every entry again first and does what's needed
+ * now: the same as the preview, unless something changed on disk in between.
+ */
+export function Apply(action: $models.Action, items: string[] | null): $CancellablePromise<$models.Result> {
+    return $Call.ByID(3596794890, action, items);
+}
+
+/**
+ * ChooseFile opens the system's file dialog in the home folder (for single settings
+ * files, an advanced thing).
+ */
+export function ChooseFile(showHidden: boolean): $CancellablePromise<string> {
+    return $Call.ByID(1712643789, showHidden);
+}
+
+/**
+ * ChooseFolder opens the system's folder dialog in the home folder. An empty result
+ * means the user cancelled.
+ */
+export function ChooseFolder(showHidden: boolean): $CancellablePromise<string> {
+    return $Call.ByID(403330135, showHidden);
+}
+
+/**
  * Overview reads the config and checks every entry. It changes nothing.
  */
 export function Overview(): $CancellablePromise<$models.Overview> {
     return $Call.ByID(586917249);
+}
+
+/**
+ * Preview shows what action would do to items. It changes nothing.
+ */
+export function Preview(action: $models.Action, items: string[] | null): $CancellablePromise<$models.Plan> {
+    return $Call.ByID(1529234206, action, items);
 }

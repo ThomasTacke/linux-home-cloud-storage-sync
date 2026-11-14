@@ -7,10 +7,16 @@ export {
 };
 
 export {
+    Action,
+    Outcome,
     Status
 } from "./models.js";
 
 export type {
+    Added,
     Entry,
-    Overview
+    Overview,
+    Plan,
+    Result,
+    Step
 } from "./models.js";
