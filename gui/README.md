@@ -57,7 +57,9 @@ env HOME_SYNC_CONFIG=/tmp/homesync-fresh/config.json HOME_SYNC_HOME=/tmp/homesyn
 - `go.mod` uses the parent module through `replace … => ../`, so the CLI's `go.mod`
   stays free of Wails and cgo
 
-**Ubuntu 24.04:** WebKitGTK's web process can't start there with the default AppArmor
-restriction on unprivileged user namespaces (`kernel.apparmor_restrict_unprivileged_userns=1`):
-the window stays empty, `WebProcess CRASHED`. Arch-based systems (CachyOS, Bazzite's
-Fedora base) don't have this restriction.
+**Ubuntu: not from VSCode's terminal.** Ubuntu ships an AppArmor profile for VSCode
+(`/etc/apparmor.d/code`) that every process started from its integrated terminal inherits;
+WebKitGTK's web process can't start under it, so the window stays empty (`WebProcess
+CRASHED`, `EGL_BAD_PARAMETER`). Run `wails3 dev` from a normal terminal instead. Systems
+without AppArmor (CachyOS, Arch) aren't affected, and neither is Home Sync started from
+the app menu.
