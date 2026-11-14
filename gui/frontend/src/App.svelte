@@ -259,7 +259,7 @@
                       </Button>
                     {/snippet}
                   </DropdownMenu.Trigger>
-                  <DropdownMenu.Content align="end">
+                  <DropdownMenu.Content align="end" class="min-w-52">
                     {#if entry.status === Status.StatusSynced}
                       <DropdownMenu.Item onSelect={() => start(Action.ActionStop, [entry.item])}>
                         {actionInfo[Action.ActionStop].label}
@@ -299,7 +299,7 @@
             <Button {...props} variant="outline">More…</Button>
           {/snippet}
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end">
+        <DropdownMenu.Content align="end" class="min-w-52">
           {#each [Action.ActionConnect, Action.ActionMove, Action.ActionUseCloud, Action.ActionStop] as action}
             <DropdownMenu.Item onSelect={() => start(action, selected)}>{actionInfo[action].label}</DropdownMenu.Item>
           {/each}
